@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Proctoring from '@/components/exam/Proctoring'
+import { useCallback } from 'react'
 
 interface Question {
   slot: number
@@ -26,7 +27,6 @@ export default function ExamPage() {
   const [current, setCurrent] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [timeLeft, setTimeLeft] = useState(0)
-  const [loading, setLoading] = useState(false)
   const [attemptId, setAttemptId] = useState<number | null>(null)
   const [started, setStarted] = useState(false)
   const [violations, setViolations] = useState<string[]>([])
@@ -35,6 +35,21 @@ export default function ExamPage() {
   const [checkingPassword, setCheckingPassword] = useState(false)
   const [tabWarning, setTabWarning] = useState(false)
   const [sequencechecks, setSequencechecks] = useState<Record<string, string>>({})
+
+  const reportViolation = useCallback((type: string) => {
+    const user = JSON.parse(localStorage.getItem('moodle_user') || '{}')
+    fetch('/api/moodle/violations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.id,
+        userName: user.name,
+        attemptId,
+        type,
+        time: new Date().toLocaleTimeString()
+      })
+    }).catch(() => { })
+  }, [attemptId])
 
 
   useEffect(() => {
@@ -55,20 +70,21 @@ export default function ExamPage() {
   useEffect(() => {
     if (!started) return
 
-
     function onVisibility() {
-      console.log('VISIBILITY:', document.hidden)
       if (document.hidden) {
-        setViolations(v => [...v, `Tab berpindah — ${new Date().toLocaleTimeString()}`])
+        const msg = `Tab berpindah — ${new Date().toLocaleTimeString()}`
+        setViolations(v => [...v, msg])
         setTabWarning(true)
+        reportViolation('Tab berpindah')
       }
     }
 
     function onFullscreenChange() {
-      console.log('FULLSCREEN ELEMENT:', document.fullscreenElement)
       if (!document.fullscreenElement) {
-        setViolations(v => [...v, `Keluar fullscreen — ${new Date().toLocaleTimeString()}`])
+        const msg = `Keluar fullscreen — ${new Date().toLocaleTimeString()}`
+        setViolations(v => [...v, msg])
         setTabWarning(true)
+        reportViolation('Keluar fullscreen')
       }
     }
 
