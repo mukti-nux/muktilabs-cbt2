@@ -16,6 +16,7 @@ export default function ProctoringPage() {
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<'all' | 'inprogress' | 'finished'>('all')
     const [search, setSearch] = useState('')
+    const [snapshots, setSnapshots] = useState<any[]>([])
 
     useEffect(() => {
         const load = () => {
@@ -86,6 +87,48 @@ export default function ProctoringPage() {
         )
     }
 
+    function LiveCamGrid() {
+        const [snapshots, setSnapshots] = useState<any[]>([])
+        useEffect(() => {
+            const load = () => {
+                fetch('/api/moodle/snapshots')
+                    .then(r => r.json())
+                    .then(d => setSnapshots(d.snapshots || []))
+            }
+            load()
+            const i = setInterval(load, 10000)
+            return () => clearInterval(i)
+        }, [])
+
+        if (snapshots.length === 0) return (
+            <div className="p-8 text-center text-slate-400 text-sm">
+                Belum ada siswa yang aktif dengan kamera
+            </div>
+        )
+
+        return (
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+                {snapshots.map((s, i) => (
+                    <div key={i} className="relative rounded-xl overflow-hidden bg-slate-900 aspect-video">
+                        {s.image && (
+                            <img src={s.image} alt={s.userName} className="w-full h-full object-cover" />
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                            <p className="text-white text-xs font-medium">{s.userName}</p>
+                            <p className="text-white/60 text-xs">
+                                {new Date(s.time).toLocaleTimeString('id-ID')}
+                            </p>
+                        </div>
+                        <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 rounded-full px-1.5 py-0.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                            <span className="text-white text-xs">Live</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -97,6 +140,18 @@ export default function ProctoringPage() {
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-ping"></span>
                     LIVE
                 </div>
+            </div>
+
+            {/* Live Camera Grid */}
+            <div className="bg-white rounded-2xl border border-slate-200">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h2 className="font-semibold text-slate-800">Live Kamera Siswa</h2>
+                    <span className="flex items-center gap-1.5 text-xs text-green-600">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
+                        Update tiap 10 detik
+                    </span>
+                </div>
+                <LiveCamGrid />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
