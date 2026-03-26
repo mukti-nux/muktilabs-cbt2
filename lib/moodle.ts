@@ -1,9 +1,9 @@
 const BASE_URL = process.env.NEXT_PUBLIC_MOODLE_URL
 const TOKEN = process.env.MOODLE_TOKEN
 
-export async function moodleCall(wsfunction: string, params: Record<string, string> = {}) {
+export async function moodleCall(wsfunction: string, params: Record<string, string> = {}, token?: string) {
   const url = new URL(`${BASE_URL}/webservice/rest/server.php`)
-  url.searchParams.set('wstoken', TOKEN!)
+  url.searchParams.set('wstoken', token || TOKEN!)
   url.searchParams.set('wsfunction', wsfunction)
   url.searchParams.set('moodlewsrestformat', 'json')
   

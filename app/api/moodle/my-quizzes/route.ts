@@ -9,16 +9,18 @@ export async function GET(req: Request) {
   if (!userId || !token) return NextResponse.json({ error: 'Missing params' }, { status: 400 })
 
   try {
-    const coursesRes = await moodleCall('core_course_get_courses')
+    // Tambahkan token ke panggilan ini jika diperlukan autentikasi
+    const coursesRes = await moodleCall('core_course_get_courses', {}, token)
     const courses = (coursesRes || []).filter((c: any) => c.id !== 1)
 
     const result: any[] = []
 
     for (const course of courses) {
       try {
+        // Tambahkan token ke panggilan ini jika diperlukan autentikasi
         const quizRes = await moodleCall('mod_quiz_get_quizzes_by_courses', {
           'courseids[0]': String(course.id)
-        })
+        }, token)
 
         for (const quiz of (quizRes.quizzes || [])) {
           try {
