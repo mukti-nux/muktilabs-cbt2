@@ -34,11 +34,16 @@ export default function Proctoring({ onViolation, attemptId }: Props) {
                 let attempts = 0
                 const warmup = setInterval(() => {
                     attempts++
+
+                    const video = videoRef.current
+                    if (!video) return
+
                     if (video.readyState >= 4 && video.videoWidth > 0) {
                         clearInterval(warmup)
                         captureAndSend()
                     }
-                    if (attempts > 20) clearInterval(warmup) // max 10 detik
+
+                    if (attempts > 20) clearInterval(warmup)
                 }, 500)
 
             } catch {

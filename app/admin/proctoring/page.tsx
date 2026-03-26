@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRef } from 'react'
 import Link from 'next/link'
 
 interface Attempt {
