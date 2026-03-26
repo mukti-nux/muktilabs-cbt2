@@ -16,7 +16,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-  const load = () => {
     Promise.all([
       fetch('/api/moodle/admin/stats').then(r => r.json()),
       fetch('/api/moodle/admin/attempts').then(r => r.json()),
@@ -25,12 +24,7 @@ export default function AdminDashboard() {
       setRecentAttempts(a.attempts || [])
       setLoading(false)
     })
-  }
-
-  load()
-  const interval = setInterval(load, 5000)
-  return () => clearInterval(interval)
-}, [])
+  }, [])
 
   const statCards = [
     { label: 'Total Pengguna', value: stats.totalUsers, color: 'bg-violet-50 text-violet-700', icon: '◎' },
@@ -67,68 +61,28 @@ export default function AdminDashboard() {
       <div className="bg-white rounded-2xl border border-slate-200">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-semibold text-slate-800">Attempt Terbaru</h2>
-          <button
-            onClick={() => router.push('/admin/proctoring')}
-            className="text-xs text-violet-600 hover:underline"
-          >
+          <button onClick={() => router.push('/admin/proctoring')} className="text-xs text-violet-600 hover:underline">
             Lihat semua →
           </button>
         </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500">
-              <tr>
-                <th className="text-left px-6 py-3 font-medium">Peserta</th>
-                <th className="text-left px-6 py-3 font-medium">Quiz</th>
-                <th className="text-left px-6 py-3 font-medium">Mulai</th>
-                <th className="text-left px-6 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-slate-100">
-              {recentAttempts.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-slate-400">
-                    Belum ada attempt
-                  </td>
-                </tr>
-              ) : (
-                recentAttempts.slice(0, 10).map((a, i) => (
-                  <tr key={i} className="hover:bg-slate-50 transition-colors">
-
-                    <td className="px-6 py-3">
-                      <p className="font-medium text-slate-700">{a.userfullname}</p>
-                    </td>
-
-                    <td className="px-6 py-3 text-slate-600">
-                      {a.quiz}
-                    </td>
-
-                    <td className="px-6 py-3 text-slate-500">
-                      {new Date(a.timestart * 1000).toLocaleString('id-ID')}
-                    </td>
-
-                    <td className="px-6 py-3">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${a.state === 'finished'
-                          ? 'bg-green-50 text-green-700'
-                          : a.state === 'inprogress'
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-slate-100 text-slate-500'
-                        }`}>
-                        {a.state === 'finished'
-                          ? 'Selesai'
-                          : a.state === 'inprogress'
-                            ? 'Berlangsung'
-                            : a.state}
-                      </span>
-                    </td>
-
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="divide-y divide-slate-100">
+          {recentAttempts.length === 0 ? (
+            <div className="px-6 py-8 text-center text-slate-400 text-sm">Belum ada attempt</div>
+          ) : recentAttempts.slice(0, 8).map((a, i) => (
+            <div key={i} className="px-6 py-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-700">{a.userfullname}</p>
+                <p className="text-xs text-slate-400">{a.quiz} · {new Date(a.timestart * 1000).toLocaleString('id-ID')}</p>
+              </div>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                a.state === 'finished' ? 'bg-green-50 text-green-700' :
+                a.state === 'inprogress' ? 'bg-amber-50 text-amber-700' :
+                'bg-slate-100 text-slate-500'
+              }`}>
+                {a.state === 'finished' ? 'Selesai' : a.state === 'inprogress' ? 'Berlangsung' : a.state}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
