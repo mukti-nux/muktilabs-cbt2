@@ -35,10 +35,12 @@ export default function LoginPage() {
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-violet-600 rounded-xl mx-auto mb-4 flex items-center justify-center">
-            <span className="text-white text-xl font-bold">M</span>
-          </div>
-          <h1 className="text-2xl font-semibold text-slate-800">MuktiLabs CBT</h1>
+          <img
+              src="/favicon.png"
+              alt="logo"
+              className="w-100 h-50 object-contain"
+            />
+          <h1 className="text-2xl font-semibold text-slate-800">MuktiLabs Exam Machine System</h1>
           <p className="text-slate-500 text-sm mt-1">Masuk untuk memulai ujian</p>
         </div>
 

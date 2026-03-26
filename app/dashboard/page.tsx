@@ -83,9 +83,11 @@ export default function DashboardPage() {
         {/* Logo */}
         <div className="px-5 py-5 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-violet-600 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-sm">M</span>
-            </div>
+            <img
+              src="/favicon.png"
+              alt="logo"
+              className="w-12 h-12 object-contain"
+            />
             <div>
               <p className="font-semibold text-slate-800 text-sm">MuktiLabs CBT</p>
               <p className="text-xs text-slate-400">Portal Ujian</p>
@@ -268,9 +270,9 @@ export default function DashboardPage() {
                   <div
                     key={i}
                     className={`aspect-square flex items-center justify-center text-xs rounded-lg transition-colors ${day === null ? '' :
-                        day === time.getDate()
-                          ? 'bg-violet-600 text-white font-semibold'
-                          : 'text-slate-600 hover:bg-slate-50'
+                      day === time.getDate()
+                        ? 'bg-violet-600 text-white font-semibold'
+                        : 'text-slate-600 hover:bg-slate-50'
                       }`}
                   >
                     {day}
