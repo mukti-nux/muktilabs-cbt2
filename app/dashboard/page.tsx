@@ -52,8 +52,8 @@ export default function DashboardPage() {
     return 'Selamat malam'
   }
 
-  const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu']
-  const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
+  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
   function getCalendarDays() {
     const year = time.getFullYear()
@@ -110,19 +110,24 @@ export default function DashboardPage() {
         <nav className="flex-1 p-3 space-y-1">
           <div className="px-3 py-2.5 rounded-xl bg-violet-50 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center">
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path fill="white" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path fill="white" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" /></svg>
             </div>
             <span className="text-sm font-medium text-violet-700">Dashboard</span>
           </div>
-          <div className="px-3 py-2.5 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-slate-50 transition-colors">
+          <div
+            onClick={() => router.push('/ujian-saya')}
+            className="px-3 py-2.5 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-slate-50 transition-colors"
+          >
             <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path fill="#94a3b8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                <path fill="#94a3b8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
             </div>
             <span className="text-sm text-slate-600">Ujian Saya</span>
-          </div>
+          </div>  
           <div className="px-3 py-2.5 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-slate-50 transition-colors">
             <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path fill="#94a3b8" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path fill="#94a3b8" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
             </div>
             <span className="text-sm text-slate-600">Nilai Saya</span>
           </div>
@@ -135,7 +140,7 @@ export default function DashboardPage() {
             className="w-full px-3 py-2.5 rounded-xl flex items-center gap-3 hover:bg-red-50 transition-colors group"
           >
             <div className="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-red-100 flex items-center justify-center transition-colors">
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
             </div>
             <span className="text-sm text-slate-500 group-hover:text-red-600 transition-colors">Keluar</span>
           </button>
@@ -167,7 +172,7 @@ export default function DashboardPage() {
           <div className="bg-gradient-to-br from-violet-600 to-violet-700 rounded-2xl p-5 text-white">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="white" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="white" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
               </div>
             </div>
             <p className="text-3xl font-bold mb-1">{courses.length}</p>
@@ -177,7 +182,7 @@ export default function DashboardPage() {
           <div className="bg-white border border-slate-200 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#f59e0b" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#f59e0b" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
               </div>
             </div>
             <p className="text-3xl font-bold text-slate-800 mb-1">-</p>
@@ -187,7 +192,7 @@ export default function DashboardPage() {
           <div className="bg-white border border-slate-200 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#22c55e" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#22c55e" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
             </div>
             <p className="text-3xl font-bold text-slate-800 mb-1">-</p>
@@ -206,7 +211,7 @@ export default function DashboardPage() {
             {courses.length === 0 ? (
               <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
                 <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="#94a3b8" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="#94a3b8" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                 </div>
                 <p className="text-slate-500 text-sm">Belum ada ujian tersedia</p>
               </div>
@@ -248,12 +253,12 @@ export default function DashboardPage() {
                   {months[time.getMonth()]} {time.getFullYear()}
                 </h3>
                 <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
-                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path fill="white" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path fill="white" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 </div>
               </div>
 
               <div className="grid grid-cols-7 mb-2">
-                {['S','S','R','K','J','S','M'].map((d, i) => (
+                {['S', 'S', 'R', 'K', 'J', 'S', 'M'].map((d, i) => (
                   <div key={i} className="text-center text-xs font-medium text-slate-400 py-1">{d}</div>
                 ))}
               </div>
@@ -262,12 +267,11 @@ export default function DashboardPage() {
                 {getCalendarDays().map((day, i) => (
                   <div
                     key={i}
-                    className={`aspect-square flex items-center justify-center text-xs rounded-lg transition-colors ${
-                      day === null ? '' :
-                      day === time.getDate()
-                        ? 'bg-violet-600 text-white font-semibold'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
+                    className={`aspect-square flex items-center justify-center text-xs rounded-lg transition-colors ${day === null ? '' :
+                        day === time.getDate()
+                          ? 'bg-violet-600 text-white font-semibold'
+                          : 'text-slate-600 hover:bg-slate-50'
+                      }`}
                   >
                     {day}
                   </div>
@@ -279,7 +283,7 @@ export default function DashboardPage() {
             <div className="mt-4 bg-violet-50 border border-violet-100 rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-6 h-6 bg-violet-600 rounded-lg flex items-center justify-center">
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path fill="white" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path fill="white" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 <p className="text-xs font-semibold text-violet-800">Perhatian</p>
               </div>
