@@ -20,18 +20,46 @@ export default function DashboardPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [time, setTime] = useState(new Date())
+  const [stats, setStats] = useState({ selesai: 0, avgDuration: '-' })
 
   useEffect(() => {
     const stored = localStorage.getItem('moodle_user')
     const token = localStorage.getItem('moodle_token')
     if (!stored || !token) { router.push('/'); return }
-    setUser(JSON.parse(stored))
+
+    const user = JSON.parse(stored)
+    if (!user || !user.id) { router.push('/'); return }
+
+    setUser(user)
+
     fetch('/api/moodle/courses')
       .then(r => r.json())
       .then(data => {
         setCourses(data.filter((c: Course) => c.id !== 1))
         setLoading(false)
       })
+
+    fetch(`/api/moodle/my-quizzes?userId=${user.id}`, {
+      headers: { 'x-token': token }
+    })
+      .then(r => r.json())
+      .then(d => {
+        const quizzes = d.quizzes || []
+        const finished = quizzes.filter((q: any) => q.attempt?.state === 'finished')
+
+        let avgDuration = '-'
+        if (finished.length > 0) {
+          const totalMins = finished.reduce((sum: number, q: any) => {
+            const diff = (q.attempt.timefinish - q.attempt.timestart) / 60
+            return sum + diff
+          }, 0)
+          const avg = Math.round(totalMins / finished.length)
+          avgDuration = `${avg} menit`
+        }
+
+        setStats({ selesai: finished.length, avgDuration })
+      })
+      .catch(() => { })
   }, [router])
 
   useEffect(() => {
@@ -83,8 +111,12 @@ export default function DashboardPage() {
         {/* Logo */}
         <div className="px-5 py-5 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-violet-600 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-sm">M</span>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+              <img
+                src="/favicon.png"
+                alt="logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <p className="font-semibold text-slate-800 text-sm">MuktiLabs CBT</p>
@@ -124,12 +156,6 @@ export default function DashboardPage() {
               </svg>
             </div>
             <span className="text-sm text-slate-600">Ujian Saya</span>
-          </div>  
-          <div className="px-3 py-2.5 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-slate-50 transition-colors">
-            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path fill="#94a3b8" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-            </div>
-            <span className="text-sm text-slate-600">Nilai Saya</span>
           </div>
         </nav>
 
@@ -168,25 +194,25 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-6 mb-8">
           <div className="bg-gradient-to-br from-violet-600 to-violet-700 rounded-2xl p-5 text-white">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                 <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="white" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
               </div>
             </div>
-            <p className="text-3xl font-bold mb-1">{courses.length}</p>
+            <p className="text-2xl font-bold mb-1">{courses.length}</p>
             <p className="text-violet-200 text-sm">Mata Pelajaran</p>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#f59e0b" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#f59e0b" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
             </div>
-            <p className="text-3xl font-bold text-slate-800 mb-1">-</p>
-            <p className="text-slate-400 text-sm">Rata-rata Nilai</p>
+            <p className="text-2xl font-bold text-slate-800 mb-1">-</p>
+            <p className="text-slate-400 text-sm">Rata-rata Waktu</p>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-5">
@@ -195,7 +221,7 @@ export default function DashboardPage() {
                 <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#22c55e" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
             </div>
-            <p className="text-3xl font-bold text-slate-800 mb-1">-</p>
+            <p className="text-2xl font-bold text-slate-800 mb-1">-</p>
             <p className="text-slate-400 text-sm">Ujian Selesai</p>
           </div>
         </div>
@@ -268,9 +294,9 @@ export default function DashboardPage() {
                   <div
                     key={i}
                     className={`aspect-square flex items-center justify-center text-xs rounded-lg transition-colors ${day === null ? '' :
-                        day === time.getDate()
-                          ? 'bg-violet-600 text-white font-semibold'
-                          : 'text-slate-600 hover:bg-slate-50'
+                      day === time.getDate()
+                        ? 'bg-violet-600 text-white font-semibold'
+                        : 'text-slate-600 hover:bg-slate-50'
                       }`}
                   >
                     {day}

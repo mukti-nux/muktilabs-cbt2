@@ -35,6 +35,7 @@ export default function ExamPage() {
   const [checkingPassword, setCheckingPassword] = useState(false)
   const [tabWarning, setTabWarning] = useState(false)
   const [sequencechecks, setSequencechecks] = useState<Record<string, string>>({})
+  const [showConfirm, setShowConfirm] = useState(false)
 
 
   useEffect(() => {
@@ -217,6 +218,63 @@ export default function ExamPage() {
           </div>
         </div>
       )}
+
+      {showConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99998,
+          background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 20,
+            padding: '36px 32px', maxWidth: 380,
+            width: '90%', textAlign: 'center'
+          }}>
+            <div style={{
+              width: 56, height: 56, background: '#EDE9FE',
+              borderRadius: 16, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px', fontSize: 26
+            }}>📋</div>
+            <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e293b', marginBottom: 8 }}>
+              Kumpulkan Ujian?
+            </h2>
+            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 6 }}>
+              Kamu telah menjawab <strong>{Object.keys(answers).length}</strong> dari <strong>{questions.length}</strong> soal.
+            </p>
+            <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 28 }}>
+              Jawaban tidak dapat diubah setelah dikumpulkan.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setShowConfirm(false)}
+                style={{
+                  flex: 1, padding: '12px 0',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 12, fontSize: 14,
+                  color: '#64748b', background: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => { setShowConfirm(false); handleSubmit() }}
+                style={{
+                  flex: 1, padding: '12px 0',
+                  border: 'none', borderRadius: 12,
+                  fontSize: 14, fontWeight: 500,
+                  color: 'white', background: '#7c3aed',
+                  cursor: 'pointer'
+                }}
+              >
+                Ya, Kumpulkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4"
         style={{ pointerEvents: tabWarning ? 'none' : 'auto' }}>
         <div className="bg-white rounded-2xl border border-slate-200 p-8 max-w-md w-full">
@@ -272,11 +330,70 @@ export default function ExamPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
+      {showConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99998,
+          background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 20,
+            padding: '36px 32px', maxWidth: 380,
+            width: '90%', textAlign: 'center'
+          }}>
+            <div style={{
+              width: 56, height: 56, background: '#EDE9FE',
+              borderRadius: 16, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px', fontSize: 26
+            }}>📋</div>
+            <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e293b', marginBottom: 8 }}>
+              Kumpulkan Ujian?
+            </h2>
+            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 6 }}>
+              Kamu telah menjawab <strong>{Object.keys(answers).length}</strong> dari <strong>{questions.length}</strong> soal.
+            </p>
+            <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 28 }}>
+              Jawaban tidak dapat diubah setelah dikumpulkan.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setShowConfirm(false)}
+                style={{
+                  flex: 1, padding: '12px 0',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 12, fontSize: 14,
+                  color: '#64748b', background: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => { setShowConfirm(false); handleSubmit() }}
+                style={{
+                  flex: 1, padding: '12px 0',
+                  border: 'none', borderRadius: 12,
+                  fontSize: 14, fontWeight: 500,
+                  color: 'white', background: '#7c3aed',
+                  cursor: 'pointer'
+                }}
+              >
+                Ya, Kumpulkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Topbar */}
       <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-violet-600 rounded-lg flex items-center justify-center">
-            <span className="text-white text-xs font-bold">M</span>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+            <img
+              src="/favicon.png"
+              alt="logo"
+              className="w-full h-full object-cover"
+            />
           </div>
           <span className="font-medium text-slate-700 text-sm">{quiz?.name}</span>
         </div>
@@ -286,7 +403,7 @@ export default function ExamPage() {
           {formatTime(timeLeft)}
         </div>
         <button
-          onClick={() => { if (confirm('Yakin ingin mengumpulkan ujian?')) handleSubmit() }}
+          onClick={() => setShowConfirm(true)}
           className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors"
         >
           Kumpulkan
