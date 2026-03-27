@@ -20,7 +20,11 @@ export default function DashboardPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [time, setTime] = useState(new Date())
-  const [stats, setStats] = useState({ selesai: 0, avgDuration: '-' })
+  const [stats, setStats] = useState({
+    activeCount: 0,
+    nearestDeadline: '-',
+    averageScore: '-'
+  })
 
   useEffect(() => {
     const stored = localStorage.getItem('moodle_user')
@@ -45,21 +49,59 @@ export default function DashboardPage() {
       .then(r => r.json())
       .then(d => {
         const quizzes = d.quizzes || []
-        const finished = quizzes.filter((q: any) => q.attempt?.state === 'finished')
+        const now = Math.floor(Date.now() / 1000) // timestamp sekarang (detik)
 
-        let avgDuration = '-'
-        if (finished.length > 0) {
-          const totalMins = finished.reduce((sum: number, q: any) => {
-            const diff = (q.attempt.timefinish - q.attempt.timestart) / 60
-            return sum + diff
-          }, 0)
-          const avg = Math.round(totalMins / finished.length)
-          avgDuration = `${avg} menit`
+        // 1️⃣ Ujian Aktif: Bisa diakses & belum finished
+        const activeCount = quizzes.filter((q: any) => {
+          const isAccessible = now >= q.timeopen && now <= q.timeclose
+          const notFinished = q.attempt?.state !== 'finished'
+          return isAccessible && notFinished
+        }).length
+
+        // 2️⃣ Deadline Terdekat: Quiz yang belum finished & timeclose-nya paling dekat
+        const upcoming = quizzes
+          .filter(q => {
+            const notFinished = q.attempt?.state !== 'finished'
+            const notExpired = q.timeclose > now
+            return notFinished && notExpired && q.timeclose > 0 // timeclose > 0 = ada deadline
+          })
+          .sort((a, b) => a.timeclose - b.timeclose)
+
+        let nearestDeadline = '-'
+        if (upcoming[0]?.timeclose) {
+          const diffSeconds = upcoming[0].timeclose - now
+          if (diffSeconds < 3600) {
+            const mins = Math.ceil(diffSeconds / 60)
+            nearestDeadline = `${mins} menit`
+          } else if (diffSeconds < 86400) {
+            const hours = Math.ceil(diffSeconds / 3600)
+            nearestDeadline = `${hours} jam`
+          } else {
+            const days = Math.ceil(diffSeconds / 86400)
+            nearestDeadline = `${days} hari`
+          }
         }
 
-        setStats({ selesai: finished.length, avgDuration })
+        // 3️⃣ Nilai Rata-Rata: Dari attempt yang finished & punya sumgrades
+        const finished = quizzes.filter((q: any) =>
+          q.attempt?.state === 'finished' &&
+          q.attempt?.sumgrades != null &&
+          q.maxgrade > 0
+        )
+
+        let averageScore = '-'
+        if (finished.length > 0) {
+          const avg = finished.reduce((sum, q) => {
+            // Hitung persentase: (sumgrades / maxgrade) * 100
+            const percentage = (q.attempt.sumgrades / q.maxgrade) * 100
+            return sum + percentage
+          }, 0) / finished.length
+          averageScore = Math.round(avg).toString()
+        }
+
+        setStats({ activeCount, nearestDeadline, averageScore })
       })
-      .catch(() => { })
+
   }, [router])
 
   useEffect(() => {
@@ -211,8 +253,8 @@ export default function DashboardPage() {
                 <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#f59e0b" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
             </div>
-            <p className="text-2xl font-bold text-slate-800 mb-1">-</p>
-            <p className="text-slate-400 text-sm">Rata-rata Waktu</p>
+            <p className="text-2xl font-bold text-slate-800 mb-1">{stats.nearestDeadline}</p>
+            <p className="text-slate-400 text-sm">Batas Waktu Terdekat</p>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-5">
@@ -221,8 +263,8 @@ export default function DashboardPage() {
                 <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#22c55e" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
             </div>
-            <p className="text-2xl font-bold text-slate-800 mb-1">-</p>
-            <p className="text-slate-400 text-sm">Ujian Selesai</p>
+            <p className="text-2xl font-bold text-slate-800 mb-1">{stats.activeCount}</p>
+            <p className="text-slate-400 text-sm">Ujian Aktif</p>
           </div>
         </div>
 

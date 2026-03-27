@@ -20,7 +20,7 @@ export async function GET(req: Request) {
         // Tambahkan token ke panggilan ini jika diperlukan autentikasi
         const quizRes = await moodleCall('mod_quiz_get_quizzes_by_courses', {
           'courseids[0]': String(course.id)
-        }, token)
+        }, token) 
 
         for (const quiz of (quizRes.quizzes || [])) {
           try {

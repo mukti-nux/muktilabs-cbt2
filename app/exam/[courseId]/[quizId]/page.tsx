@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Proctoring from '@/components/exam/Proctoring'
+import { processMoodleContent } from '@/lib/sanitize-moodle'
 
 interface Question {
   slot: number
@@ -428,7 +429,9 @@ export default function ExamPage() {
 
             {q ? (
               <div>
-                <p className="text-slate-800 text-base leading-relaxed mb-6">{q.qtext}</p>
+                + <div className="moodle-content text-slate-800 text-base leading-relaxed mb-6"
+                  dangerouslySetInnerHTML={{ __html: processMoodleContent(q.qtext) }}
+                />
                 <div className="space-y-3">
                   {q.choices.map((choice) => (
                     <div
@@ -447,7 +450,10 @@ export default function ExamPage() {
                           <div className="w-2 h-2 rounded-full bg-white" />
                         )}
                       </div>
-                      <span className="text-sm text-slate-700">{choice.label}</span>
+                      <span
+                        className="text-sm text-slate-700 moodle-content"
+                        dangerouslySetInnerHTML={{ __html: processMoodleContent(choice.label) }}
+                      />
                     </div>
                   ))}
                 </div>
