@@ -76,7 +76,7 @@ export default function LoginPage() {
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+          <div className="w-100 h-30 rounded-xl flex items-center justify-center overflow-hidden">
             <img
               src="/favicon.png"
               alt="logo"
