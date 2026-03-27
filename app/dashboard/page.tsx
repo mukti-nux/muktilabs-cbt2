@@ -60,12 +60,12 @@ export default function DashboardPage() {
 
         // 2️⃣ Deadline Terdekat: Quiz yang belum finished & timeclose-nya paling dekat
         const upcoming = quizzes
-          .filter(q => {
+          .filter((q: any) => {
             const notFinished = q.attempt?.state !== 'finished'
             const notExpired = q.timeclose > now
             return notFinished && notExpired && q.timeclose > 0 // timeclose > 0 = ada deadline
           })
-          .sort((a, b) => a.timeclose - b.timeclose)
+          .sort((a: any, b: any) => a.timeclose - b.timeclose)
 
         let nearestDeadline = '-'
         if (upcoming[0]?.timeclose) {
@@ -91,7 +91,7 @@ export default function DashboardPage() {
 
         let averageScore = '-'
         if (finished.length > 0) {
-          const avg = finished.reduce((sum, q) => {
+          const avg = finished.reduce((sum: number, q: any) => {
             // Hitung persentase: (sumgrades / maxgrade) * 100
             const percentage = (q.attempt.sumgrades / q.maxgrade) * 100
             return sum + percentage
