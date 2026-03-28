@@ -57,7 +57,7 @@ function ParticipantGrid({ onSelect }: { onSelect: (name: string) => void }) {
 export default function LiveKitMonitor({ roomName }: { roomName: string }) {
   const [token, setToken] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
-  const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://localhost:7880'
+  const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://livekit.muktilabs.my.id'
 
   useEffect(() => {
     fetch('/api/livekit/token', {
