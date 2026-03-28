@@ -1,20 +1,34 @@
+//fungsi gabungan (1+2) - optimal dengan gambar dan password
+
 import { NextResponse } from 'next/server'
+import { moodleCall, proxifyMoodleImages } from '@/lib/moodle'
 
 function parseQuestion(q: any) {
   const html = q.html || ''
+  const base = process.env.NEXT_PUBLIC_MOODLE_URL || ''
 
-  // Extract teks soal
+  // Extract teks soal dengan dukungan gambar
   const qtextMatch = html.match(/<div class="qtext">([\s\S]*?)<\/div>/)
-  const qtext = qtextMatch
+  let qtext = qtextMatch
     ? qtextMatch[1].replace(/<[^>]+>/g, '').trim()
     : 'Soal tidak dapat ditampilkan'
 
-  // Extract pilihan jawaban
-  const choices: { value: string; label: string }[] = []
+  // Cek apakah ada gambar di qtext — kalau ada pakai HTML langsung
+  const qtextHtml = qtextMatch ? proxifyMoodleImages(qtextMatch[1], base) : qtext
+  const hasImage = qtextHtml.includes('<img')
+
+  // Extract pilihan jawaban dengan dukungan gambar
+  const choices: { value: string; label: string; hasImage: boolean }[] = []
   const answerRegex = /<input type="radio"[^>]*value="(\d+)"[^>]*>[\s\S]*?<div[^>]*>\s*<span[^>]*>[^<]*<\/span>\s*<div[^>]*>([\s\S]*?)<\/div>/g
   let match
   while ((match = answerRegex.exec(html)) !== null) {
-    choices.push({ value: match[1], label: match[2].replace(/<[^>]+>/g, '').trim() })
+    const labelHtml = proxifyMoodleImages(match[2], base)
+    const labelText = match[2].replace(/<[^>]+>/g, '').trim()
+    choices.push({
+      value: match[1],
+      label: labelHtml.includes('<img') ? labelHtml : labelText,
+      hasImage: labelHtml.includes('<img')
+    })
   }
 
   // Extract input name untuk submit
@@ -30,7 +44,8 @@ function parseQuestion(q: any) {
     slot: q.slot,
     type: q.type,
     number: q.number,
-    qtext,
+    qtext: hasImage ? qtextHtml : qtext,
+    qtextIsHtml: hasImage,
     choices,
     inputName,
     seqName,
@@ -46,7 +61,7 @@ export async function POST(req: Request) {
   const base = process.env.NEXT_PUBLIC_MOODLE_URL
 
   try {
-    // Start attempt
+    // Start attempt dengan password
     const startParams = new URLSearchParams({
       wstoken: token,
       wsfunction: 'mod_quiz_start_attempt',
@@ -65,7 +80,7 @@ export async function POST(req: Request) {
     const attemptId = attemptData.attempt.id
     const totalPages = attemptData.attempt.layout.split('0,').length - 1
 
-    // Fetch semua halaman soal
+    // Fetch semua halaman soal dengan password
     const allQuestions: any[] = []
     for (let page = 0; page < totalPages; page++) {
       const qParams = new URLSearchParams({
@@ -108,4 +123,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
-

@@ -6,12 +6,12 @@ export async function moodleCall(wsfunction: string, params: Record<string, stri
   url.searchParams.set('wstoken', token || TOKEN!)
   url.searchParams.set('wsfunction', wsfunction)
   url.searchParams.set('moodlewsrestformat', 'json')
-  
+
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
 
   const res = await fetch(url.toString())
   const data = await res.json()
-  
+
   if (data?.exception) throw new Error(data.message)
   return data
 }
@@ -24,4 +24,12 @@ export async function getCourseQuizzes(courseId: number) {
   return moodleCall('mod_quiz_get_quizzes_by_courses', {
     'courseids[0]': String(courseId)
   })
+}
+
+export function proxifyMoodleImages(html: string, moodleBase: string): string {
+  if (!html) return html
+  return html.replace(
+    /src="(https?:\/\/[^"]*pluginfile\.php[^"]*)"/g,
+    (_, url) => `src="/api/moodle/image?url=${encodeURIComponent(url)}"`
+  )
 }

@@ -100,3 +100,253 @@ body {
 .moodle-content li {
   margin: 0.25rem 0;
 }
+
+/* Izinkan gambar dari domain Moodle */
+.moodle-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0.75rem 0;
+  display: block;
+}
+
+/* Jika gambar masih tidak muncul, coba tambahkan: */
+.moodle-content img[src^="http"] {
+  content-visibility: auto; /* Optimasi render */
+}
+
+/* ========================================
+   MOODLE CONTENT STYLING
+   ======================================== */
+
+.moodle-content {
+  line-height: 1.7;
+  word-wrap: break-word;
+}
+
+.moodle-content > *:first-child {
+  margin-top: 0;
+}
+
+.moodle-content > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Paragraphs */
+.moodle-content p {
+  margin: 0.75rem 0;
+}
+
+/* Images */
+.moodle-content img.moodle-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  display: block;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  min-height: 100px;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+
+.moodle-content img.moodle-image.moodle-image-loaded {
+  opacity: 1;
+}
+
+.moodle-content img.moodle-image.moodle-image-error {
+  display: none;
+}
+
+.moodle-content img.moodle-image[src*="placeholder"] {
+  background: #fee2e2;
+}
+
+/* Tables */
+.moodle-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  display: block;
+}
+
+.moodle-content table th,
+.moodle-content table td {
+  border: 1px solid #e2e8f0;
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.moodle-content table th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.moodle-content table tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.moodle-content table tr:hover {
+  background: #f1f5f9;
+}
+
+/* Lists */
+.moodle-content ul,
+.moodle-content ol {
+  margin: 0.75rem 0;
+  padding-left: 2rem;
+}
+
+.moodle-content ul {
+  list-style-type: disc;
+}
+
+.moodle-content ol {
+  list-style-type: decimal;
+}
+
+.moodle-content ol[type="a"] {
+  list-style-type: lower-alpha;
+}
+
+.moodle-content ol[type="A"] {
+  list-style-type: upper-alpha;
+}
+
+.moodle-content ol[type="i"] {
+  list-style-type: lower-roman;
+}
+
+.moodle-content ol[type="I"] {
+  list-style-type: upper-roman;
+}
+
+.moodle-content li {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+.moodle-content li > ul,
+.moodle-content li > ol {
+  margin: 0.25rem 0;
+}
+
+/* Links */
+.moodle-content a {
+  color: #7c3aed;
+  text-decoration: none;
+  border-bottom: 1px dashed #7c3aed;
+  transition: all 0.2s;
+}
+
+.moodle-content a:hover {
+  border-bottom-style: solid;
+  color: #6d28d9;
+}
+
+.moodle-content a[target="_blank"]::after {
+  content: " ↗";
+  font-size: 0.75em;
+}
+
+/* Code & Pre */
+.moodle-content pre,
+.moodle-content code {
+  background: #f1f5f9;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+}
+
+.moodle-content pre {
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  border: 1px solid #e2e8f0;
+}
+
+.moodle-content pre code {
+  padding: 0;
+  background: transparent;
+  font-size: inherit;
+}
+
+/* Blockquote */
+.moodle-content blockquote {
+  border-left: 4px solid #e2e8f0;
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Headings (jika ada) */
+.moodle-content h1,
+.moodle-content h2,
+.moodle-content h3,
+.moodle-content h4,
+.moodle-content h5,
+.moodle-content h6 {
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem;
+  line-height: 1.3;
+  color: #1e293b;
+}
+
+.moodle-content h1 { font-size: 1.875rem; }
+.moodle-content h2 { font-size: 1.5rem; }
+.moodle-content h3 { font-size: 1.25rem; }
+.moodle-content h4 { font-size: 1.125rem; }
+
+/* Horizontal rule */
+.moodle-content hr {
+  border: none;
+  border-top: 2px solid #e2e8f0;
+  margin: 1.5rem 0;
+}
+
+/* Math (MathJax) */
+.moodle-content math {
+  font-family: "Times New Roman", Times, serif;
+}
+
+/* Figures */
+.moodle-content figure {
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.moodle-content figcaption {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-top: 0.5rem;
+}
+
+/* Audio & Video */
+.moodle-content audio,
+.moodle-content video {
+  max-width: 100%;
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .moodle-content table {
+    font-size: 0.75rem;
+  }
+  
+  .moodle-content table th,
+  .moodle-content table td {
+    padding: 0.5rem;
+  }
+  
+  .moodle-content img {
+    max-width: 100%;
+  }
+}
