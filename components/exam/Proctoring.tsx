@@ -1,65 +1,22 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
-import {
-  LiveKitRoom,
-  useLocalParticipant,
-  useTracks,
-  VideoTrack,
-} from '@livekit/components-react'
-import { Track } from 'livekit-client'
 
 interface Props {
   onViolation: (msg: string) => void
   attemptId?: number | null
 }
 
-function CameraPublisher({ onViolation, attemptId, userName }: {
-  onViolation: (msg: string) => void
-  attemptId?: number | null
-  userName: string
-}) {
-  const { localParticipant } = useLocalParticipant()
-  const [camStatus, setCamStatus] = useState<'loading' | 'ok' | 'error'>('loading')
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+export default function Proctoring({ onViolation, attemptId }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [camStatus, setCamStatus] = useState<'loading' | 'ok' | 'error' | 'nocam'>('loading')
+  const streamRef = useRef<MediaStream | null>(null)
 
-  useEffect(() => {
-    async function enableCam() {
-      try {
-        await localParticipant.setCameraEnabled(true)
-        setCamStatus('ok')
-
-        // Screenshot tiap 15 detik
-        const interval = setInterval(() => captureSnapshot(), 15000)
-        setTimeout(() => captureSnapshot(), 3000)
-
-        return () => clearInterval(interval)
-      } catch {
-        setCamStatus('error')
-        onViolation('Kamera tidak dapat diakses')
-
-        // Kirim notif ke server bahwa tidak ada kamera
-        fetch('/api/moodle/snapshots', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: 0,
-            userName,
-            attemptId,
-            image: null,
-            time: new Date().toISOString(),
-            noCam: true
-          })
-        }).catch(() => {})
-      }
-    }
-    enableCam()
-  }, [localParticipant])
-
-  function captureSnapshot() {
+  const captureAndSend = useCallback(() => {
     const video = videoRef.current
     const canvas = canvasRef.current
-    if (!video || !canvas || video.readyState < 4 || video.videoWidth === 0) return
+    if (!video || !canvas) return
+    if (video.readyState < 4 || video.videoWidth === 0) return
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -67,8 +24,11 @@ function CameraPublisher({ onViolation, attemptId, userName }: {
     canvas.height = 240
     ctx.drawImage(video, 0, 0, 320, 240)
 
-    const imageData = ctx.getImageData(0, 0, 10, 10)
-    const isBlack = imageData.data.every((v, i) => i % 4 === 3 || v < 10)
+    // Cek frame hitam
+    const imageData = ctx.getImageData(0, 0, 20, 20)
+    const isBlack = Array.from(imageData.data)
+      .filter((_, i) => i % 4 !== 3)
+      .every(v => v < 15)
     if (isBlack) return
 
     const base64 = canvas.toDataURL('image/jpeg', 0.6)
@@ -85,102 +45,136 @@ function CameraPublisher({ onViolation, attemptId, userName }: {
         time: new Date().toISOString()
       })
     }).catch(() => {})
-  }
+  }, [attemptId])
 
-  const tracks = useTracks([Track.Source.Camera])
-  const localTrack = tracks.find(t => t.participant.isLocal)
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    let warmupInterval: NodeJS.Timeout
+
+    async function startCam() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 320, height: 240, facingMode: 'user' },
+          audio: false
+        })
+        streamRef.current = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+        }
+        setCamStatus('ok')
+
+        // Warmup — tunggu video benar2 ada gambar
+        let tries = 0
+        warmupInterval = setInterval(() => {
+          tries++
+          const v = videoRef.current
+          if (v && v.readyState >= 4 && v.videoWidth > 0) {
+            clearInterval(warmupInterval)
+            captureAndSend()
+            // Kirim tiap 15 detik
+            interval = setInterval(captureAndSend, 15000)
+          }
+          if (tries > 20) clearInterval(warmupInterval)
+        }, 500)
+
+      } catch {
+        setCamStatus('nocam')
+        // Tetap kirim notif ke server bahwa tidak ada kamera
+        const user = JSON.parse(localStorage.getItem('moodle_user') || '{}')
+        fetch('/api/moodle/snapshots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            userName: user.name,
+            attemptId,
+            image: null,
+            noCam: true,
+            time: new Date().toISOString()
+          })
+        }).catch(() => {})
+        onViolation('Kamera tidak dapat diakses')
+      }
+    }
+
+    startCam()
+
+    return () => {
+      streamRef.current?.getTracks().forEach(t => t.stop())
+      clearInterval(interval)
+      clearInterval(warmupInterval)
+    }
+  }, [attemptId, captureAndSend, onViolation])
 
   return (
     <div className="space-y-2">
       <div className="relative rounded-xl overflow-hidden bg-slate-900 aspect-video">
-        {localTrack ? (
-          <VideoTrack trackRef={localTrack} className="w-full h-full object-cover" />
+        {camStatus === 'nocam' ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"
+                  d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+                <path stroke="#ef4444" strokeWidth="2" strokeLinecap="round" d="M3 3l18 18"/>
+              </svg>
+            </div>
+            <p className="text-slate-400 text-xs text-center px-4">Tanpa kamera</p>
+          </div>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            {camStatus === 'loading' && <p className="text-white text-xs">Mengaktifkan kamera...</p>}
-            {camStatus === 'error' && <p className="text-red-300 text-xs text-center px-4">Kamera tidak tersedia — ujian dicatat tanpa kamera</p>}
+          <>
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+            <canvas ref={canvasRef} className="hidden" />
+          </>
+        )}
+
+        {camStatus === 'loading' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+            <div className="text-center">
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-2" />
+              <p className="text-white text-xs">Mengaktifkan kamera...</p>
+            </div>
           </div>
         )}
-        <canvas ref={canvasRef} className="hidden" />
+
         {camStatus === 'ok' && (
           <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/50 rounded-full px-2 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
             <span className="text-white text-xs">Live</span>
           </div>
         )}
-        {camStatus === 'error' && (
+
+        {camStatus === 'nocam' && (
           <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-red-900/70 rounded-full px-2 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
             <span className="text-white text-xs">No cam</span>
           </div>
         )}
       </div>
+
       <div className="space-y-1.5">
         <div className="flex items-center gap-2 text-xs">
-          <span className={`w-2 h-2 rounded-full ${camStatus === 'ok' ? 'bg-green-400' : camStatus === 'error' ? 'bg-red-400' : 'bg-amber-400 animate-pulse'}`} />
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+            camStatus === 'ok' ? 'bg-green-400' :
+            camStatus === 'nocam' ? 'bg-red-400' :
+            'bg-amber-400 animate-pulse'
+          }`} />
           <span className="text-slate-600">
-            {camStatus === 'ok' ? 'Kamera aktif' : camStatus === 'error' ? 'Tanpa kamera (dicatat)' : 'Memuat kamera...'}
+            {camStatus === 'ok' ? 'Kamera aktif' :
+             camStatus === 'nocam' ? 'Tanpa kamera (dicatat)' :
+             'Memuat kamera...'}
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className="w-2 h-2 rounded-full bg-green-400" />
-          <span className="text-slate-600">Terhubung ke server</span>
+          <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+          <span className="text-slate-600">Snapshot tiap 15 detik</span>
         </div>
       </div>
     </div>
-  )
-}
-
-export default function Proctoring({ onViolation, attemptId }: Props) {
-  const [token, setToken] = useState<string | null>(null)
-  const [userName, setUserName] = useState('')
-  const [roomName, setRoomName] = useState('')
-  const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://livekit.muktilabs.my.id'
-
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('moodle_user') || '{}')
-    const name = user.name || 'Siswa'
-    const room = `exam-${attemptId || 'default'}`
-    setUserName(name)
-    setRoomName(room)
-
-    fetch('/api/livekit/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        roomName: room,
-        participantName: name,
-        isTeacher: false
-      })
-    })
-      .then(r => r.json())
-      .then(d => setToken(d.token))
-      .catch(() => onViolation('Gagal terhubung ke server proctoring'))
-  }, [attemptId])
-
-  if (!token) return (
-    <div className="aspect-video bg-slate-900 rounded-xl flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-white text-xs">Menghubungkan...</p>
-      </div>
-    </div>
-  )
-
-  return (
-    <LiveKitRoom
-      serverUrl={livekitUrl}
-      token={token}
-      connect={true}
-      audio={false}
-      video={false}
-      onDisconnected={() => onViolation('Koneksi proctoring terputus')}
-    >
-      <CameraPublisher
-        onViolation={onViolation}
-        attemptId={attemptId}
-        userName={userName}
-      />
-    </LiveKitRoom>
   )
 }
