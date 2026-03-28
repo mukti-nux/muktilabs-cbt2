@@ -135,7 +135,7 @@ export default function Proctoring({ onViolation, attemptId }: Props) {
   const [token, setToken] = useState<string | null>(null)
   const [userName, setUserName] = useState('')
   const [roomName, setRoomName] = useState('')
-  const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://localhost:7880'
+  const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://livekit.muktilabs.my.id'
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('moodle_user') || '{}')
