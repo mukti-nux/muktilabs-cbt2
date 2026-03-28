@@ -5,10 +5,8 @@ const cspConnectSources = [
   process.env.NEXT_PUBLIC_MOODLE_URL?.trim(),
   ...(process.env.NEXT_PUBLIC_CSP_CONNECT?.split(',').map(s => s.trim()).filter(Boolean) ?? []),
   'https://lms.muktilabs.my.id',
-  'ws://192.168.100.102:7880',
-  'wss://192.168.100.102:7880',  // tambahan untuk HTTPS
-  'http://192.168.100.102:7880',
-  'https://192.168.100.102:7880', // tambahan kalau LiveKit pakai TLS
+  'wss://livekit.muktilabs.my.id',  // tambahan untuk HTTPS',
+  'https://livekit.muktilabs.my.id', // tambahan kalau LiveKit pakai TLS
 ].filter(Boolean)
 
 const cspDirectives = {
