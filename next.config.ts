@@ -45,5 +45,8 @@ const nextConfig: NextConfig = {
     ]
   },
 }
+// Di akhir file sebelum export
+console.log('CSP Connect Sources:', cspConnectSources)
+console.log('Full CSP:', Object.values(cspDirectives).join('; '))
 
 export default nextConfig
