@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import LivePage from './live/page'
 
 interface Attempt {
   id: number
@@ -100,7 +99,7 @@ export default function ProctoringPage() {
               <div
                 key={i}
                 onClick={() => setSelectedKey(snap.key)}
-                className={`relative rounded-xl overflow-hidden bg-slate-900 aspect-video cursor-pointer transition-all group ${selectedKey === snap.key ? 'ring-2 ring-violet-400 scale-105' : 'hover:ring-2 hover:ring-violet-400'}`}
+                className="relative rounded-xl overflow-hidden bg-slate-900 aspect-video cursor-pointer hover:ring-2 hover:ring-violet-400 transition-all group"
               >
                 {snap.noCam ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
@@ -211,10 +210,6 @@ export default function ProctoringPage() {
         )}
       </div>
 
-      <div className="mt-8">
-        <h2 className="text-2xl font-semibold text-slate-800 mb-3">Live Monitoring</h2>
-        <LivePage />
-      </div>
     </div>
   )
 }
