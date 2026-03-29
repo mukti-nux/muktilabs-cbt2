@@ -3,18 +3,17 @@
 // + deteksi attempt yang sedang berjalan → kembalikan error ATTEMPT_IN_PROGRESS
 
 import { NextResponse } from 'next/server'
-import { moodleCall, proxifyMoodleImages } from '@/lib/moodle'
+import { proxifyMoodleImages } from '@/lib/moodle'
 
-function parseQuestion(q: any) {
+function parseQuestion(q: any, base: string, userToken: string) {
   const html = q.html || ''
-  const base = process.env.NEXT_PUBLIC_MOODLE_URL || ''
 
   // Extract qtext HTML mentah dulu
   const qtextMatch = html.match(/<div class="qtext">([\s\S]*?)<\/div>/)
   const qtextRaw = qtextMatch ? qtextMatch[1] : ''
 
-  // Proxify gambar
-  const qtextProxified = proxifyMoodleImages(qtextRaw, base)
+  // ✅ Proxify gambar dengan token
+  const qtextProxified = proxifyMoodleImages(qtextRaw, base, userToken)
 
   // Cek apakah ada gambar
   const hasImage = qtextProxified.includes('<img')
@@ -29,7 +28,8 @@ function parseQuestion(q: any) {
   const answerRegex = /<input type="radio"[^>]*value="(\d+)"[^>]*>[\s\S]*?data-region="answer-label">([\s\S]*?)<\/div>\s*<\/div>/g
   let match
   while ((match = answerRegex.exec(html)) !== null) {
-    const labelHtml = proxifyMoodleImages(match[2], base)
+    // ✅ Proxify gambar di pilihan jawaban juga
+    const labelHtml = proxifyMoodleImages(match[2], base, userToken)
     const hasImgInChoice = labelHtml.includes('<img')
     choices.push({
       value: match[1],
@@ -62,11 +62,26 @@ export async function POST(req: Request) {
   const quizId = searchParams.get('quizId')
   const base = process.env.NEXT_PUBLIC_MOODLE_URL
 
+  // ✅ VALIDASI: Pastikan environment variable sudah diset
+  if (!base) {
+    return NextResponse.json(
+      { error: 'MOODLE_URL not configured' },
+      { status: 500 }
+    )
+  }
+
+  if (!token) {
+    return NextResponse.json(
+      { error: 'User token required' },
+      { status: 401 }
+    )
+  }
+
   try {
     // ── Cek attempt inprogress sebelum membuat yang baru ──
     const checkParams = new URLSearchParams({
       wstoken: token,
-      wsfunction: 'mod_quiz_get_user_quiz_attempts', // WS yang benar untuk token siswa
+      wsfunction: 'mod_quiz_get_user_quiz_attempts',
       moodlewsrestformat: 'json',
       quizid: quizId!,
       userid: '0', // 0 = current user
@@ -127,7 +142,8 @@ export async function POST(req: Request) {
       })
       const qData = await qRes.json()
       if (qData.questions) {
-        allQuestions.push(...qData.questions.map(parseQuestion))
+        // ✅ Pass token ke parseQuestion
+        allQuestions.push(...qData.questions.map((q: any) => parseQuestion(q, base, token)))
       }
     }
 

@@ -1,3 +1,6 @@
+// /api/moodle/image/route.ts
+// Proxy gambar dari Moodle dengan autentikasi token
+
 import { NextResponse } from 'next/server'
 
 export async function GET(req: Request) {
@@ -5,12 +8,22 @@ export async function GET(req: Request) {
   const url = searchParams.get('url')
   const token = searchParams.get('token')
 
+  // ✅ Validasi parameter wajib
   if (!url || !token) {
-    return new NextResponse('Missing params', { status: 400 })
+    return new NextResponse('Missing url or token parameter', { status: 400 })
   }
 
-  // convert ke webservice pluginfile
-  const imageUrl = url.replace(
+  // ✅ Decode URL yang di-encode
+  let decodedUrl: string
+  try {
+    decodedUrl = decodeURIComponent(url)
+  } catch {
+    return new NextResponse('Invalid URL encoding', { status: 400 })
+  }
+
+  // ✅ Convert ke webservice pluginfile dengan token
+  // Format: /webservice/pluginfile.php/{token}/filepath
+  const imageUrl = decodedUrl.replace(
     '/pluginfile.php/',
     `/webservice/pluginfile.php/${token}/`
   )
@@ -21,16 +34,22 @@ export async function GET(req: Request) {
     })
 
     if (!res.ok) {
-      return new NextResponse('Failed', { status: res.status })
+      console.error(`[moodle/image] Failed to fetch: ${imageUrl}, status: ${res.status}`)
+      return new NextResponse('Failed to fetch image from Moodle', { status: res.status })
     }
 
+    // ✅ Forward content-type dan cache headers
+    const contentType = res.headers.get('content-type') || 'image/png'
+    
     return new NextResponse(res.body, {
+      status: 200,
       headers: {
-        'Content-Type': res.headers.get('content-type') || 'image/png',
+        'Content-Type': contentType,
         'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
       },
     })
-  } catch {
-    return new NextResponse('Error', { status: 500 })
+  } catch (error) {
+    console.error('[moodle/image] Error fetching image:', error)
+    return new NextResponse('Internal server error', { status: 500 })
   }
 }

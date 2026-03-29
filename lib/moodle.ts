@@ -62,31 +62,32 @@ export async function getUserCourses(userId: string, token: string) {
  * - @@PLUGINFILE@@
  * - /pluginfile.php
  * - https://domain/pluginfile.php
+ * 
+ * ✅ FINAL: Selalu sertakan token untuk autentikasi
  */
-export function proxifyMoodleImages(html: string, moodleBase: string): string {
-  if (!html) return html
+export function proxifyMoodleImages(html: string, moodleBase: string, userToken: string): string {
+  if (!html || !moodleBase || !userToken) return html
 
   return html.replace(/src="([^"]+)"/g, (_, src) => {
     let finalUrl = src
 
-    // @@PLUGINFILE@@
+    // @@PLUGINFILE@@ → convert ke URL absolut
     if (src.includes('@@PLUGINFILE@@')) {
       finalUrl = src.replace('@@PLUGINFILE@@', `${moodleBase}/pluginfile.php`)
     }
-
-    // relative /pluginfile.php
+    // relative /pluginfile.php → tambah base
     else if (src.startsWith('/pluginfile.php')) {
       finalUrl = `${moodleBase}${src}`
     }
-
-    // absolute pluginfile → biarkan
+    // absolute URL → biarkan
     else if (src.startsWith('http')) {
       finalUrl = src
     }
 
-    // hanya proxy jika pluginfile
+    // Hanya proxy jika pluginfile.php
     if (finalUrl.includes('pluginfile.php')) {
-      return `src="/api/moodle/image?url=${encodeURIComponent(finalUrl)}"`
+      // ✅ Sertakan token untuk autentikasi di proxy
+      return `src="/api/moodle/image?url=${encodeURIComponent(finalUrl)}&token=${encodeURIComponent(userToken)}"`
     }
 
     return `src="${finalUrl}"`
