@@ -3,14 +3,20 @@ import { NextResponse } from 'next/server'
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const url = searchParams.get('url')
+  const token = searchParams.get('token')
 
-  if (!url) return new NextResponse('Missing url', { status: 400 })
+  if (!url || !token) {
+    return new NextResponse('Missing params', { status: 400 })
+  }
+
+  // convert ke webservice pluginfile
+  const imageUrl = url.replace(
+    '/pluginfile.php/',
+    `/webservice/pluginfile.php/${token}/`
+  )
 
   try {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${process.env.MOODLE_TOKEN}`,
-      },
+    const res = await fetch(imageUrl, {
       next: { revalidate: 3600 },
     })
 
@@ -18,16 +24,13 @@ export async function GET(req: Request) {
       return new NextResponse('Failed', { status: res.status })
     }
 
-    const contentType = res.headers.get('content-type') || 'image/png'
-
     return new NextResponse(res.body, {
       headers: {
-        'Content-Type': contentType,
+        'Content-Type': res.headers.get('content-type') || 'image/png',
         'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
       },
     })
-  } catch (err) {
-    console.error(err)
+  } catch {
     return new NextResponse('Error', { status: 500 })
   }
 }

@@ -72,7 +72,7 @@ export default function Proctoring({ onViolation, attemptId }: Props) {
             clearInterval(warmupInterval)
             captureAndSend()
             // Kirim tiap 5 detik
-            interval = setInterval(captureAndSend, 5000)
+            interval = setInterval(captureAndSend, 10000)
           }
           if (tries > 20) clearInterval(warmupInterval)
         }, 500)

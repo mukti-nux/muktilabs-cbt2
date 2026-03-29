@@ -514,7 +514,7 @@ export default function ExamPage() {
               <div>
                 {q.qtextIsHtml ? (
                   <div
-                    className="text-slate-800 text-base leading-relaxed mb-6 prose prose-sm max-w-none"
+                    className="text-slate-800 text-base leading-relaxed mb-6 prose prose-sm max-w-none [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-2"
                     dangerouslySetInnerHTML={{ __html: q.qtext }}
                   />
                 ) : (
