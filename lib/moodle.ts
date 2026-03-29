@@ -20,7 +20,6 @@ export async function moodleCall(
 ) {
   if (!BASE_URL) throw new Error('MOODLE_URL tidak dikonfigurasi di environment variables')
 
-  // Pakai POST supaya params panjang (preflightdata, dll) tidak kena URL length limit
   const body = new URLSearchParams({
     wstoken: token || TOKEN!,
     wsfunction,
@@ -57,11 +56,39 @@ export async function getUserCourses(userId: string, token: string) {
   return moodleCall('core_enrol_get_users_courses', { userid: userId }, token)
 }
 
-/** Proxify URL gambar Moodle supaya tidak kena CORS */
+/**
+ * Proxify URL gambar Moodle supaya tidak kena CORS
+ * Menangani:
+ * - @@PLUGINFILE@@
+ * - /pluginfile.php
+ * - https://domain/pluginfile.php
+ */
 export function proxifyMoodleImages(html: string, moodleBase: string): string {
   if (!html) return html
-  return html.replace(
-    /src="(https?:\/\/[^"]*pluginfile\.php[^"]*)"/g,
-    (_, url) => `src="/api/moodle/image?url=${encodeURIComponent(url)}"`
-  )
+
+  return html.replace(/src="([^"]+)"/g, (_, src) => {
+    let finalUrl = src
+
+    // @@PLUGINFILE@@
+    if (src.includes('@@PLUGINFILE@@')) {
+      finalUrl = src.replace('@@PLUGINFILE@@', `${moodleBase}/pluginfile.php`)
+    }
+
+    // relative /pluginfile.php
+    else if (src.startsWith('/pluginfile.php')) {
+      finalUrl = `${moodleBase}${src}`
+    }
+
+    // absolute pluginfile → biarkan
+    else if (src.startsWith('http')) {
+      finalUrl = src
+    }
+
+    // hanya proxy jika pluginfile
+    if (finalUrl.includes('pluginfile.php')) {
+      return `src="/api/moodle/image?url=${encodeURIComponent(finalUrl)}"`
+    }
+
+    return `src="${finalUrl}"`
+  })
 }
