@@ -35,6 +35,15 @@ export default function LivePage() {
       .then(d => setHistory(d.history || []))
   }
 
+  const formatTime = (value: string) => {
+    const formatter = new Intl.DateTimeFormat('id-ID', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+      timeZone: 'UTC',
+    })
+    return formatter.format(new Date(value))
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 p-4">
       {/* Header */}
@@ -83,7 +92,7 @@ export default function LivePage() {
               </div>
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
                 <p className="text-white text-xs font-medium truncate">{snap.userName}</p>
-                <p className="text-white/50 text-xs">{new Date(snap.time).toLocaleTimeString('id-ID')}</p>
+                  <p className="text-white/50 text-xs">{formatTime(snap.time)}</p>
               </div>
               <div className="absolute top-1.5 right-1.5">
                 <span className="w-2 h-2 bg-green-400 rounded-full block animate-pulse" />
@@ -127,7 +136,7 @@ export default function LivePage() {
                 >
                   <img src={h.image} alt={`h-${i}`} className="w-full aspect-video object-cover" />
                   <p className="text-slate-500 text-xs p-1">
-                    {new Date(h.time).toLocaleTimeString('id-ID')}
+                    {formatTime(h.time)}
                   </p>
                 </div>
               ))}
