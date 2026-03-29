@@ -53,7 +53,7 @@ export default function LivePage() {
             {snapshots.length} aktif
           </span>
         </div>
-        <p className="text-slate-500 text-xs">Auto-refresh tiap 8 detik</p>
+        <p className="text-slate-500 text-xs">Auto-refresh tiap 5 detik</p>
       </div>
 
       {snapshots.length === 0 ? (

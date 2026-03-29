@@ -71,8 +71,8 @@ export default function Proctoring({ onViolation, attemptId }: Props) {
           if (v && v.readyState >= 4 && v.videoWidth > 0) {
             clearInterval(warmupInterval)
             captureAndSend()
-            // Kirim tiap 15 detik
-            interval = setInterval(captureAndSend, 15000)
+            // Kirim tiap 5 detik
+            interval = setInterval(captureAndSend, 5000)
           }
           if (tries > 20) clearInterval(warmupInterval)
         }, 500)
@@ -172,7 +172,7 @@ export default function Proctoring({ onViolation, attemptId }: Props) {
         </div>
         <div className="flex items-center gap-2 text-xs">
           <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
-          <span className="text-slate-600">Snapshot tiap 15 detik</span>
+          <span className="text-slate-600">Snapshot tiap 5 detik</span>
         </div>
       </div>
     </div>

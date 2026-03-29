@@ -1,5 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import LivePage from './live/page'
 
 interface Attempt {
   id: number
@@ -16,6 +18,7 @@ export default function ProctoringPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'inprogress' | 'finished'>('all')
   const [search, setSearch] = useState('')
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/moodle/admin/attempts')
@@ -40,6 +43,20 @@ export default function ProctoringPage() {
     return `${m} menit`
   }
 
+  const [snapshots, setSnapshots] = useState<any[]>([])
+
+  // Tambah di useEffect
+  useEffect(() => {
+    const loadSnaps = () => {
+      fetch('/api/moodle/snapshots')
+        .then(r => r.json())
+        .then(d => setSnapshots(d.snapshots || []))
+    }
+    loadSnaps()
+    const i = setInterval(loadSnaps, 10000)
+    return () => clearInterval(i)
+  }, [])
+
   return (
     <div className="space-y-6">
       <div>
@@ -63,6 +80,52 @@ export default function ProctoringPage() {
         </div>
       </div>
 
+      {/* Live Camera Grid */}
+      <div className="bg-white rounded-2xl border border-slate-200">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="font-semibold text-slate-800">
+            Kamera Aktif ({snapshots.length})
+          </h2>
+          <Link href="/admin/proctoring/live" className="text-xs text-violet-600 hover:underline">
+            Lihat semua kamera
+          </Link>
+        </div>
+        {snapshots.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-sm">
+            Belum ada siswa yang aktif dengan kamera
+          </div>
+        ) : (
+          <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {snapshots.slice(0, 8).map((snap, i) => (
+              <div
+                key={i}
+                onClick={() => setSelectedKey(snap.key)}
+                className={`relative rounded-xl overflow-hidden bg-slate-900 aspect-video cursor-pointer transition-all group ${selectedKey === snap.key ? 'ring-2 ring-violet-400 scale-105' : 'hover:ring-2 hover:ring-violet-400'}`}
+              >
+                {snap.noCam ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                    <span className="text-slate-500 text-xs">Tanpa kamera</span>
+                  </div>
+                ) : snap.image ? (
+                  <img src={snap.image} alt={snap.userName} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-slate-500 text-xs">Tidak ada gambar</span>
+                  </div>
+                )}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                  <p className="text-white text-xs font-medium truncate">{snap.userName}</p>
+                  <p className="text-white/50 text-xs">{new Date(snap.time).toLocaleTimeString('id-ID')}</p>
+                </div>
+                <div className="absolute top-1.5 right-1.5">
+                  <span className={`w-2 h-2 rounded-full block ${snap.noCam ? 'bg-red-400' : 'bg-green-400 animate-pulse'}`} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Filter + Search */}
       <div className="bg-white rounded-2xl border border-slate-200">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-4 flex-wrap">
@@ -78,11 +141,10 @@ export default function ProctoringPage() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  filter === f
-                    ? 'bg-violet-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === f
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
               >
                 {f === 'all' ? 'Semua' : f === 'inprogress' ? 'Berlangsung' : 'Selesai'}
               </button>
@@ -134,13 +196,12 @@ export default function ProctoringPage() {
                     {a.sumgrades != null ? Number(a.sumgrades).toFixed(1) : '-'}
                   </td>
                   <td className="px-6 py-3.5">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                      a.state === 'finished' ? 'bg-green-50 text-green-700' :
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${a.state === 'finished' ? 'bg-green-50 text-green-700' :
                       a.state === 'inprogress' ? 'bg-amber-50 text-amber-700 animate-pulse' :
-                      'bg-slate-100 text-slate-500'
-                    }`}>
+                        'bg-slate-100 text-slate-500'
+                      }`}>
                       {a.state === 'finished' ? 'Selesai' :
-                       a.state === 'inprogress' ? 'Berlangsung' : a.state}
+                        a.state === 'inprogress' ? 'Berlangsung' : a.state}
                     </span>
                   </td>
                 </tr>
@@ -148,6 +209,11 @@ export default function ProctoringPage() {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-2xl font-semibold text-slate-800 mb-3">Live Monitoring</h2>
+        <LivePage />
       </div>
     </div>
   )
