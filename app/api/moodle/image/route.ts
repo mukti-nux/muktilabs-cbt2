@@ -6,16 +6,11 @@ export async function GET(req: Request) {
 
   if (!url) return new NextResponse('Missing url', { status: 400 })
 
-  const token = process.env.MOODLE_TOKEN
-
-  // gunakan webservice pluginfile
-  const imageUrl = url.replace(
-    '/pluginfile.php/',
-    `/webservice/pluginfile.php/${token}/`
-  )
-
   try {
-    const res = await fetch(imageUrl, {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${process.env.MOODLE_TOKEN}`,
+      },
       next: { revalidate: 3600 },
     })
 
