@@ -5,6 +5,19 @@
 import { NextResponse } from 'next/server'
 import { proxifyMoodleImages } from '@/lib/moodle'
 
+function calculateTimeLeft(attempt: any, timelimit: number): number {
+  if (!timelimit || timelimit <= 0) {
+    return 0 // Quiz tanpa batas waktu
+  }
+
+  const now = Math.floor(Date.now() / 1000)
+  const startTime = attempt?.timestart || now
+  const endTime = startTime + timelimit
+
+  const remaining = endTime - now
+  return Math.max(0, remaining)
+}
+
 function parseQuestion(q: any, base: string, userToken: string) {
   const html = q.html || ''
 
@@ -157,12 +170,18 @@ export async function POST(req: Request) {
     const quizData = await quizRes.json()
     const quiz = quizData.quizzes?.find((q: any) => q.id === Number(quizId))
 
+    // Di return JSON:
     return NextResponse.json({
       attemptId,
       questions: allQuestions,
-      quiz: { name: quiz?.name || 'Ujian', timelimit: quiz?.timelimit || 0 },
+      quiz: {
+        name: quiz?.name || 'Ujian',
+        timelimit: quiz?.timelimit || 0
+      },
+      timeLeft: calculateTimeLeft(attemptData.attempt, quiz?.timelimit),
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error: any) {
+    console.error('quiz-start error', error)
+    return NextResponse.json({ error: error?.message || 'Unknown error' }, { status: 500 })
   }
 }

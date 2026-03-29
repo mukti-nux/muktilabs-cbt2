@@ -41,49 +41,59 @@ export default function ExamPage() {
   const [hasActiveAttempt, setHasActiveAttempt] = useState(false)
   const [resuming, setResuming] = useState(false)
 
-  // Ref untuk akses nilai terbaru di dalam setInterval tanpa stale closure
+  // Refs
   const attemptIdRef = useRef<number | null>(null)
   const answersRef = useRef<Record<string, string>>({})
   const sequencechecksRef = useRef<Record<string, string>>({})
   const quizPasswordRef = useRef('')
-  const submittedRef = useRef(false) // guard agar submit tidak dipanggil 2x
-  const timeLeftRef = useRef(0) // ← FIX: ref untuk timeLeft agar timer tidak stale
+  const submittedRef = useRef(false)
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Sync refs setiap render
+  // Sync refs
   useEffect(() => { attemptIdRef.current = attemptId }, [attemptId])
   useEffect(() => { answersRef.current = answers }, [answers])
   useEffect(() => { sequencechecksRef.current = sequencechecks }, [sequencechecks])
   useEffect(() => { quizPasswordRef.current = quizPassword }, [quizPassword])
-  useEffect(() => { timeLeftRef.current = timeLeft }, [timeLeft])
 
-  // ── Timer: jalan setelah started=true, baca timeLeft dari ref (tidak stale) ──
+  // ✅ FIX: Timer effect yang benar
   useEffect(() => {
     if (!started) return
+    if (timeLeft <= 0) return // Quiz tanpa batas waktu
 
-    // Tunggu sebentar agar state timeLeft sempat di-set oleh processExamData
-    const boot = setTimeout(() => {
-      if (timeLeftRef.current <= 0) return // quiz tanpa timelimit atau data belum masuk
+    // Clear interval lama kalau ada
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current)
+    }
 
-      const interval = setInterval(() => {
-        if (timeLeftRef.current <= 1) {
-          clearInterval(interval)
+    // Set interval baru
+    timerIntervalRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          // Waktu habis!
+          if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current)
+            timerIntervalRef.current = null
+          }
           if (!submittedRef.current) {
             submittedRef.current = true
             submitExam()
           }
-          setTimeLeft(0)
-          return
+          return 0
         }
-        timeLeftRef.current -= 1
-        setTimeLeft(timeLeftRef.current) // update UI
-      }, 1000)
+        return prev - 1
+      })
+    }, 1000)
 
-      return () => clearInterval(interval)
-    }, 100) // 100ms cukup untuk React flush state timeLeft
+    // Cleanup
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
+      }
+    }
+  }, [started, timeLeft])
 
-    return () => clearTimeout(boot)
-  }, [started])
-
+  // Proctoring effects
   useEffect(() => {
     if (!started) return
 
@@ -119,32 +129,17 @@ export default function ExamPage() {
     }
   }, [started])
 
-  // ── Helper: proses data soal & jawaban lama ──
+  // Helper: proses data soal
   function processExamData(data: any) {
     setQuiz(data.quiz)
     setQuestions(data.questions || [])
     setAttemptId(data.attemptId)
-    attemptIdRef.current = data.attemptId // sync ref langsung, tidak tunggu useEffect
+    attemptIdRef.current = data.attemptId
 
-    const tl = data.timeLeft ?? data.quiz?.timelimit ?? 5400
-    timeLeftRef.current = tl  // sync ref langsung sebelum timer boot
+    // ✅ Gunakan timeLeft dari API
+    const tl = data.timeLeft ?? 0
+    console.log('[Exam] Time left:', tl)
     setTimeLeft(tl)
-
-    const seqChecks: Record<string, string> = {}
-    const restoredAnswers: Record<string, string> = {}
-
-    data.questions.forEach((q: any) => {
-      if (q.seqName) seqChecks[q.seqName] = q.seqValue
-      // Restore jawaban lama jika ada (hanya dari quiz-resume)
-      if (q.previousAnswer != null) {
-        restoredAnswers[q.inputName] = q.previousAnswer
-      }
-    })
-
-    setSequencechecks(seqChecks)
-    if (Object.keys(restoredAnswers).length > 0) {
-      setAnswers(restoredAnswers)
-    }
   }
 
   async function startExam() {
@@ -159,7 +154,6 @@ export default function ExamPage() {
       })
       const data = await res.json()
 
-      // ── BARU: deteksi attempt aktif ──
       if (res.status === 409 && data.error === 'ATTEMPT_IN_PROGRESS') {
         setHasActiveAttempt(true)
         setCheckingPassword(false)
@@ -181,7 +175,6 @@ export default function ExamPage() {
     setCheckingPassword(false)
   }
 
-  // ── BARU: lanjutkan attempt yang sedang berjalan ──
   async function resumeExam() {
     setResuming(true)
     setPasswordError('')
@@ -235,6 +228,7 @@ export default function ExamPage() {
   }
 
   function formatTime(s: number) {
+    if (s <= 0) return "00:00"
     const h = Math.floor(s / 3600)
     const m = Math.floor((s % 3600) / 60)
     const sec = s % 60
@@ -311,7 +305,6 @@ export default function ExamPage() {
               </div>
             )}
 
-            {/* ── BARU: Banner & tombol resume ── */}
             {hasActiveAttempt && (
               <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 text-center">
                 <p className="text-sm font-semibold text-amber-800 mb-1">
@@ -336,7 +329,6 @@ export default function ExamPage() {
               </div>
             )}
 
-            {/* Form password — sembunyikan saat banner resume aktif */}
             {!hasActiveAttempt && (
               <>
                 <div>
@@ -376,7 +368,7 @@ export default function ExamPage() {
     </>
   )
 
-  // ── Halaman soal (sama seperti sebelumnya) ──
+  // ── Halaman soal ──
   return (
     <main className="min-h-screen bg-slate-50">
       {tabWarning && (
@@ -618,4 +610,4 @@ export default function ExamPage() {
       </div>
     </main>
   )
-}
+} 
