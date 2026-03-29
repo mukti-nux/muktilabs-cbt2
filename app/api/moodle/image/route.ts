@@ -19,27 +19,21 @@ export async function GET(req: Request) {
   }
 
   try {
-    // ✅ EXTRACT file path dari URL pluginfile.php
-    // Format: https://domain/pluginfile.php/contextid/component/filearea/itemid/path/file.jpg
-    // Atau: https://domain/pluginfile.php/44/question/questiontext/102/1/158/file.png
-    
+    const moodleBase = process.env.NEXT_PUBLIC_MOODLE_URL || process.env.MOODLE_URL
+    if (!moodleBase) {
+      return new NextResponse('Moodle URL not configured', { status: 500 })
+    }
+
+    // Extract file path dari pluginfile.php URL
     const pluginfileMatch = decodedUrl.match(/pluginfile\.php\/(.+)$/)
     if (!pluginfileMatch) {
       return new NextResponse('Invalid pluginfile URL', { status: 400 })
     }
     
-    const filePath = pluginfileMatch[1] // 44/question/questiontext/102/1/158/file.png
-    
-    // ✅ BUILD URL yang benar untuk webservice/pluginfile.php
-    // Format: ?token=xxx&file=/filepath
-    const moodleBase = process.env.NEXT_PUBLIC_MOODLE_URL || process.env.MOODLE_URL
-    if (!moodleBase) {
-      return new NextResponse('Moodle URL not configured', { status: 500 })
-    }
-    
-    const imageUrl = `${moodleBase}/webservice/pluginfile.php?token=${encodeURIComponent(token)}&file=/${encodeURIComponent(filePath)}`
+    const filePath = pluginfileMatch[1]
 
-    console.log('[moodle/image] Fetching:', imageUrl) // Debug log
+    // ✅ Format 1: Query parameter (Moodle default)
+    const imageUrl = `${moodleBase}/webservice/pluginfile.php?token=${encodeURIComponent(token)}&file=/${encodeURIComponent(filePath)}`
 
     const res = await fetch(imageUrl, {
       next: { revalidate: 3600 },
@@ -47,8 +41,8 @@ export async function GET(req: Request) {
 
     if (!res.ok) {
       const errorText = await res.text()
-      console.error(`[moodle/image] Moodle error: ${res.status}`, errorText)
-      return new NextResponse(`Moodle error: ${res.status}`, { status: res.status })
+      console.error(`[moodle/image] Moodle error ${res.status}:`, errorText.substring(0, 200))
+      return new NextResponse('Failed to fetch image from Moodle', { status: res.status })
     }
 
     const contentType = res.headers.get('content-type') || 'image/png'
