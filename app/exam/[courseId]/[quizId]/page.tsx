@@ -11,6 +11,9 @@ interface Question {
   qtextIsHtml: boolean
   choices: { value: string; label: string; hasImage: boolean }[]
   inputName: string
+  // ✅ FIX: seqName & seqValue harus ada agar jawaban tersimpan di Moodle
+  seqName: string | null
+  seqValue: string
   maxmark: number
   previousAnswer?: string | null
 }
@@ -141,6 +144,17 @@ export default function ExamPage() {
     setQuestions(data.questions || [])
     setAttemptId(data.attemptId)
     attemptIdRef.current = data.attemptId
+
+    // ✅ FIX: Isi sequencechecks dari setiap soal — wajib dikirim saat submit
+    // Tanpa ini Moodle tidak menyimpan jawaban apapun
+    const seqs: Record<string, string> = {}
+    for (const q of (data.questions || [])) {
+      if (q.seqName) {
+        seqs[q.seqName] = q.seqValue ?? '1'
+      }
+    }
+    setSequencechecks(seqs)
+    sequencechecksRef.current = seqs
 
     // ✅ Sinkronkan ref SEBELUM timer effect jalan
     const tl = data.timeLeft ?? 0
