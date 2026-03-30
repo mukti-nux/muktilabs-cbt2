@@ -1,32 +1,33 @@
 // /api/moodle/quiz-resume/route.ts
-// Melanjutkan attempt yang sedang berjalan (inprogress) tanpa menghapus jawaban
-
 import { NextResponse } from 'next/server'
 import { proxifyMoodleImages } from '@/lib/moodle'
 
-function parseQuestion(q: any) {
+// ✅ FIX: parseQuestion konsisten dengan quiz-start — terima base & userToken
+function parseQuestion(q: any, base: string, userToken: string) {
   const html = q.html || ''
-  const base = process.env.NEXT_PUBLIC_MOODLE_URL || ''
 
   const qtextMatch = html.match(/<div class="qtext">([\s\S]*?)<\/div>/)
-  let qtext = qtextMatch
-    ? qtextMatch[1].replace(/<[^>]+>/g, '').trim()
-    : 'Soal tidak dapat ditampilkan'
-
-  const qtextHtml = qtextMatch ? proxifyMoodleImages(qtextMatch[1], base) : qtext
-  const hasImage = qtextHtml.includes('<img')
+  const qtextRaw = qtextMatch ? qtextMatch[1] : ''
+  // ✅ FIX: pass userToken agar gambar di-proxify dengan benar
+  const qtextProxified = proxifyMoodleImages(qtextRaw, base, userToken)
+  const hasImage = qtextProxified.includes('<img')
+  const qtext = hasImage
+    ? qtextProxified
+    : qtextRaw.replace(/<[^>]+>/g, '').trim()
 
   const choices: { value: string; label: string; hasImage: boolean }[] = []
+  // Pakai regex yang sama dengan quiz-start (data-region="answer-label")
   const answerRegex =
-    /<input type="radio"[^>]*value="(\d+)"[^>]*>[\s\S]*?<div[^>]*>\s*<span[^>]*>[^<]*<\/span>\s*<div[^>]*>([\s\S]*?)<\/div>/g
+    /<input type="radio"[^>]*value="(\d+)"[^>]*>[\s\S]*?data-region="answer-label">([\s\S]*?)<\/div>\s*<\/div>/g
   let match
   while ((match = answerRegex.exec(html)) !== null) {
-    const labelHtml = proxifyMoodleImages(match[2], base)
-    const labelText = match[2].replace(/<[^>]+>/g, '').trim()
+    // ✅ FIX: pass userToken
+    const labelHtml = proxifyMoodleImages(match[2], base, userToken)
+    const hasImgInChoice = labelHtml.includes('<img')
     choices.push({
       value: match[1],
-      label: labelHtml.includes('<img') ? labelHtml : labelText,
-      hasImage: labelHtml.includes('<img'),
+      label: hasImgInChoice ? labelHtml : match[2].replace(/<[^>]+>/g, '').trim(),
+      hasImage: hasImgInChoice,
     })
   }
 
@@ -34,26 +35,26 @@ function parseQuestion(q: any) {
   const inputName = nameMatch ? nameMatch[1] : `q${q.slot}_answer`
 
   const seqMatch = html.match(/name="(q\d+:\d+_:sequencecheck)"\s+value="(\d+)"/)
-  const seqName = seqMatch ? seqMatch[1] : null
-  const seqValue = seqMatch ? seqMatch[2] : '1'
 
-  // Ambil jawaban yang sudah dipilih sebelumnya (jika ada)
-  const selectedMatch = html.match(/class="[^"]*selected[^"]*"[\s\S]*?value="(\d+)"/)
+  console.log(`[resume/parseQuestion] slot=${q.slot} inputName=${inputName} seqName=${seqMatch?.[1] ?? 'NOT FOUND'}`)
+
+  // Restore jawaban lama siswa jika ada
   const checkedMatch = html.match(/<input type="radio"[^>]*checked[^>]*value="(\d+)"/)
+  const selectedMatch = html.match(/class="[^"]*selected[^"]*"[\s\S]*?value="(\d+)"/)
   const previousAnswer = checkedMatch?.[1] ?? selectedMatch?.[1] ?? null
 
   return {
     slot: q.slot,
     type: q.type,
     number: q.number,
-    qtext: hasImage ? qtextHtml : qtext,
+    qtext,
     qtextIsHtml: hasImage,
     choices,
     inputName,
-    seqName,
-    seqValue,
+    seqName: seqMatch ? seqMatch[1] : null,
+    seqValue: seqMatch ? seqMatch[2] : '1',
     maxmark: q.maxmark,
-    previousAnswer, // ← jawaban lama siswa, bisa di-restore di frontend
+    previousAnswer,
   }
 }
 
@@ -63,26 +64,30 @@ export async function POST(req: Request) {
   const quizId = searchParams.get('quizId')
   const base = process.env.NEXT_PUBLIC_MOODLE_URL
 
+  if (!base) {
+    return NextResponse.json({ error: 'MOODLE_URL not configured' }, { status: 500 })
+  }
+  if (!token) {
+    return NextResponse.json({ error: 'User token required' }, { status: 401 })
+  }
+
   try {
-    // 1. Cari attempt inprogress — pakai mod_quiz_get_user_quiz_attempts (bukan get_user_attempts)
-    //    Fungsi ini tersedia untuk token siswa tanpa butuh viewreports capability
+    // 1. Cari attempt inprogress
     const attemptsParams = new URLSearchParams({
       wstoken: token,
       wsfunction: 'mod_quiz_get_user_quiz_attempts',
       moodlewsrestformat: 'json',
       quizid: quizId!,
-      userid: '0', // 0 = current user (dari token)
+      userid: '0',
       status: 'inprogress',
       includepreviews: '0',
     })
-
     const attemptsRes = await fetch(`${base}/webservice/rest/server.php`, {
       method: 'POST',
       body: attemptsParams,
     })
     const attemptsData = await attemptsRes.json()
 
-    // Fallback ke mod_quiz_get_user_attempts jika WS pertama tidak dikenal
     let inprogressAttempt: any = null
     if (!attemptsData.exception && attemptsData.attempts?.length > 0) {
       inprogressAttempt = attemptsData.attempts
@@ -90,21 +95,23 @@ export async function POST(req: Request) {
         .sort((a: any, b: any) => b.timestart - a.timestart)[0] || null
     }
 
-    // Jika masih tidak ketemu, coba lewat mod_quiz_get_attempt_access_information
-    // untuk validasi bahwa attempt memang ada
     if (!inprogressAttempt) {
       return NextResponse.json(
-        { error: 'Tidak ada ujian yang sedang berjalan. Minta guru untuk membuka akses ujian kembali.' },
+        { error: 'Tidak ada ujian yang sedang berjalan.' },
         { status: 404 }
       )
     }
 
     const attemptId = inprogressAttempt.id
-    // layout format: "1,2,3,0,4,5,6,0" — split by ",0" untuk dapat jumlah halaman
+    // ✅ Ambil courseId dari attempt — dipakai untuk fetch quiz info
+    const courseId = inprogressAttempt.courseid
+
     const layoutStr = inprogressAttempt.layout || ''
     const totalPages = layoutStr ? layoutStr.split(',0').filter(Boolean).length || 1 : 1
 
-    // 2. Fetch semua halaman soal dari attempt yang ada
+    console.log('[quiz-resume] attemptId:', attemptId, 'courseId:', courseId, 'totalPages:', totalPages)
+
+    // 2. Fetch semua halaman soal
     const allQuestions: any[] = []
     for (let page = 0; page < totalPages; page++) {
       const qParams = new URLSearchParams({
@@ -118,46 +125,47 @@ export async function POST(req: Request) {
         qParams.set('preflightdata[0][name]', 'quizpassword')
         qParams.set('preflightdata[0][value]', password)
       }
-
       const qRes = await fetch(`${base}/webservice/rest/server.php`, {
         method: 'POST',
         body: qParams,
       })
       const qData = await qRes.json()
       if (qData.questions) {
-        allQuestions.push(...qData.questions.map(parseQuestion))
+        // ✅ FIX: pass base dan token (bukan parseQuestion tanpa args)
+        allQuestions.push(...qData.questions.map((q: any) => parseQuestion(q, base, token)))
       }
     }
 
     allQuestions.sort((a, b) => a.number - b.number)
 
-    // 3. Ambil info quiz
+    // 3. ✅ FIX: Ambil quiz info pakai courseId dari attempt, bukan hardcode 4
     const adminToken = process.env.MOODLE_TOKEN
     const quizRes = await fetch(
-      `${base}/webservice/rest/server.php?wstoken=${adminToken}&wsfunction=mod_quiz_get_quizzes_by_courses&moodlewsrestformat=json&courseids[0]=4`
+      `${base}/webservice/rest/server.php?wstoken=${adminToken}&wsfunction=mod_quiz_get_quizzes_by_courses&moodlewsrestformat=json&courseids[0]=${courseId}`
     )
     const quizData = await quizRes.json()
     const quiz = quizData.quizzes?.find((q: any) => q.id === Number(quizId))
 
-    // 4. Hitung sisa waktu — prioritas: dari attempt.timecheckstate, fallback hitung manual
-    const timelimit = quiz?.timelimit || inprogressAttempt.timelimit || 0
-    let timeLeft = 0
+    console.log('[quiz-resume] quiz found:', quiz ? `id=${quiz.id} timelimit=${quiz.timelimit}` : 'NOT FOUND')
 
+    // 4. Hitung sisa waktu
+    const timelimit = quiz?.timelimit ?? inprogressAttempt.timelimit ?? 0
+    let timeLeft = 0
     if (timelimit > 0 && inprogressAttempt.timestart) {
       const nowSec = Math.floor(Date.now() / 1000)
-      const elapsed = nowSec - inprogressAttempt.timestart
-      timeLeft = Math.max(0, timelimit - elapsed)
+      timeLeft = Math.max(0, timelimit - (nowSec - inprogressAttempt.timestart))
+      console.log('[quiz-resume] timelimit:', timelimit, 'timeLeft:', timeLeft)
     }
-    // timelimit = 0 berarti tidak ada batas waktu → timeLeft tetap 0 (timer tidak jalan di frontend)
 
     return NextResponse.json({
       attemptId,
       questions: allQuestions,
       quiz: { name: quiz?.name || 'Ujian', timelimit },
-      timeLeft, // 0 jika tidak ada timelimit, >0 jika ada
+      timeLeft,
       resumed: true,
     })
   } catch (err: any) {
+    console.error('[quiz-resume] ERROR:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
