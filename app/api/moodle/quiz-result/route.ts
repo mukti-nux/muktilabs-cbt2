@@ -1,3 +1,4 @@
+// @/app/api/moodle/quiz-result/route.ts
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
@@ -6,79 +7,88 @@ export async function POST(req: Request) {
   const attemptId = searchParams.get('attemptId')
   const base = process.env.NEXT_PUBLIC_MOODLE_URL
 
-  try {
-    // ✅ FIX: Ganti hardcoded delay 2000ms dengan retry logic
-    // Moodle kadang butuh waktu untuk menghitung nilai setelah attempt selesai
-    let data: any = null
-    let attempts = 0
-    const maxAttempts = 5
+  if (!token || !attemptId) {
+    return NextResponse.json({ error: 'Missing token or attemptId' }, { status: 400 })
+  }
 
-    while (attempts < maxAttempts) {
+  try {
+    // ✅ Retry sampai attempt state = 'finished'
+    // Kadang Moodle butuh waktu setelah process_attempt selesai
+    let data: any = null
+    const maxAttempts = 8
+    const delayMs = 1500
+
+    for (let i = 0; i < maxAttempts; i++) {
       const res = await fetch(
         `${base}/webservice/rest/server.php?wstoken=${token}&wsfunction=mod_quiz_get_attempt_review&moodlewsrestformat=json&attemptid=${attemptId}`
       )
       data = await res.json()
 
-      if (data.exception) throw new Error(data.message)
+      console.log(`[quiz-result] attempt #${i + 1} state:`, data.attempt?.state, 'exception:', data.exception)
 
-      // Kalau state sudah 'finished', langsung lanjut
+      if (data.exception) {
+        // "Attempt has not closed yet" → retry
+        if (data.errorcode === 'noreview' || data.message?.includes('not closed')) {
+          if (i < maxAttempts - 1) {
+            await new Promise(r => setTimeout(r, delayMs))
+            continue
+          }
+        }
+        throw new Error(data.message)
+      }
+
       if (data.attempt?.state === 'finished') break
 
-      // Kalau belum, tunggu sebentar lalu retry
-      attempts++
-      if (attempts < maxAttempts) {
-        await new Promise(r => setTimeout(r, 1000))
+      if (i < maxAttempts - 1) {
+        await new Promise(r => setTimeout(r, delayMs))
       }
     }
 
-    console.log('FULL REVIEW:', JSON.stringify({
-      grade: data.grade,
-      attempt_sumgrades: data.attempt?.sumgrades,
-      attempt_state: data.attempt?.state,
-      attempt_quiz: data.attempt?.quiz,
-    }))
+    if (!data || data.exception) {
+      throw new Error(data?.message || 'Attempt belum selesai, coba refresh halaman.')
+    }
 
-    // ── Ambil info quiz untuk maxgrade ──
+    console.log('[quiz-result] final state:', data.attempt?.state)
+    console.log('[quiz-result] grade:', data.grade, 'sumgrades:', data.attempt?.sumgrades)
+
+    // ── Ambil maxgrade dari quiz ──
     const adminToken = process.env.MOODLE_TOKEN
-    const quizRes = await fetch(
-      `${base}/webservice/rest/server.php?wstoken=${adminToken}&wsfunction=mod_quiz_get_quizzes_by_courses&moodlewsrestformat=json&courseids[0]=4`
-    )
-    const quizData = await quizRes.json()
-    const quiz = quizData.quizzes?.find((q: any) => q.id === data.attempt?.quiz)
+    const courseId = data.attempt?.courseid
 
-    // ✅ FIX kalkulasi nilai:
-    // - data.grade     = nilai FINAL yang sudah diskala ke maxgrade (misal: 8.5 dari 10)
-    // - data.attempt.sumgrades = raw score soal (misal: 17 dari 20 soal)
-    // - quiz.grade     = maxgrade yang dikonfigurasi guru (misal: 10 atau 100)
-    // - quiz.sumgrades = total raw score maksimal semua soal
-    //
-    // Yang paling reliable untuk tampilan: pakai data.grade (sudah diskala)
-    // dan quiz.grade sebagai maxgrade-nya
+    // ✅ Coba ambil dari courseId attempt dulu, fallback ke courseid=4
+    let quiz: any = null
+    const tryCoursIds = courseId ? [courseId, 4] : [4]
 
-    const maxgrade = parseFloat(String(quiz?.grade ?? 10))
-    const finalGrade = parseFloat(String(data.grade ?? 0)) // sudah dalam skala maxgrade
+    for (const cid of tryCoursIds) {
+      const quizRes = await fetch(
+        `${base}/webservice/rest/server.php?wstoken=${adminToken}&wsfunction=mod_quiz_get_quizzes_by_courses&moodlewsrestformat=json&courseids[0]=${cid}`
+      )
+      const quizData = await quizRes.json()
+      quiz = quizData.quizzes?.find((q: any) => q.id === data.attempt?.quiz)
+      if (quiz) break
+    }
 
-    // sumgrades untuk referensi (raw)
+    console.log('[quiz-result] quiz found:', quiz ? `id=${quiz.id} grade=${quiz.grade}` : 'NOT FOUND, using default')
+
+    const maxgrade = parseFloat(String(quiz?.grade ?? 100))
+    // data.grade = nilai sudah diskala ke maxgrade (reliable)
+    const finalGrade = parseFloat(String(data.grade ?? 0))
     const rawSumgrades = parseFloat(String(data.attempt?.sumgrades ?? 0))
     const rawMaxSumgrades = parseFloat(String(quiz?.sumgrades ?? maxgrade))
 
-    console.log('NILAI:', { finalGrade, maxgrade, rawSumgrades, rawMaxSumgrades })
+    console.log('[quiz-result] finalGrade:', finalGrade, 'maxgrade:', maxgrade)
 
     return NextResponse.json({
-      // ✅ grade dan maxgrade konsisten: finalGrade sudah dalam skala maxgrade
       grade: finalGrade,
-      maxgrade: maxgrade,
-      // sumgrades kita set sama dengan grade agar kalkulasi pct di frontend tidak salah
-      // (sebelumnya sumgrades=grade yg sudah diskala, tapi maxgrade=10 → 85/10*100=850%)
-      sumgrades: finalGrade,
-      // raw score kalau dibutuhkan
+      maxgrade,
+      sumgrades: finalGrade,   // sama dengan grade agar kalkulasi pct di frontend konsisten
       rawSumgrades,
       rawMaxSumgrades,
       timestart: data.attempt?.timestart ?? 0,
       timefinish: data.attempt?.timefinish ?? 0,
     })
   } catch (err: any) {
-    console.error('quiz-result error:', err.message)
+    console.error('[quiz-result] ERROR:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

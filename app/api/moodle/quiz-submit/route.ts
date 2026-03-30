@@ -1,52 +1,70 @@
+// @/app/api/moodle/quiz-submit/route.ts
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
   const { token, attemptId, answers, password, sequencechecks } = await req.json()
   const base = process.env.NEXT_PUBLIC_MOODLE_URL
 
-  try {
-    // ✅ FIX: Moodle butuh 2 langkah — SAVE dulu, baru FINISH
-    // Kalau langsung finishattempt=1 tanpa save, jawaban tidak tersimpan di DB Moodle
+  console.log('[quiz-submit] attemptId:', attemptId)
+  console.log('[quiz-submit] answers count:', Object.keys(answers || {}).length)
+  console.log('[quiz-submit] sequencechecks count:', Object.keys(sequencechecks || {}).length)
+  console.log('[quiz-submit] sequencechecks:', JSON.stringify(sequencechecks))
 
-    // ── LANGKAH 1: Save jawaban (finishattempt=0) ──
+  if (!token || !attemptId) {
+    return NextResponse.json({ error: 'Missing token or attemptId' }, { status: 400 })
+  }
+
+  try {
+    function buildDataParams(
+      params: URLSearchParams,
+      answers: Record<string, string>,
+      sequencechecks: Record<string, string>
+    ) {
+      let i = 0
+      Object.entries(answers || {}).forEach(([name, value]) => {
+        params.set(`data[${i}][name]`, name)
+        params.set(`data[${i}][value]`, String(value))
+        i++
+      })
+      Object.entries(sequencechecks || {}).forEach(([name, value]) => {
+        params.set(`data[${i}][name]`, name)
+        params.set(`data[${i}][value]`, String(value))
+        i++
+      })
+      return i
+    }
+
+    // ── LANGKAH 1: SAVE (finishattempt=0) ──
     const saveParams = new URLSearchParams({
       wstoken: token,
       wsfunction: 'mod_quiz_process_attempt',
       moodlewsrestformat: 'json',
       attemptid: String(attemptId),
-      finishattempt: '0', // ← hanya save, belum finish
+      finishattempt: '0',
     })
-
     if (password) {
       saveParams.set('preflightdata[0][name]', 'quizpassword')
       saveParams.set('preflightdata[0][value]', password)
     }
-
-    let i = 0
-    // Kirim jawaban
-    Object.entries(answers).forEach(([name, value]) => {
-      saveParams.set(`data[${i}][name]`, name)
-      saveParams.set(`data[${i}][value]`, String(value))
-      i++
-    })
-    // Kirim sequencecheck — wajib ada agar jawaban divalidasi Moodle
-    if (sequencechecks) {
-      Object.entries(sequencechecks).forEach(([name, value]) => {
-        saveParams.set(`data[${i}][name]`, name)
-        saveParams.set(`data[${i}][value]`, String(value))
-        i++
-      })
-    }
+    const saveCount = buildDataParams(saveParams, answers, sequencechecks)
+    console.log('[quiz-submit] SAVE sending', saveCount, 'data fields')
 
     const saveRes = await fetch(`${base}/webservice/rest/server.php`, {
       method: 'POST',
       body: saveParams,
     })
     const saveData = await saveRes.json()
-    console.log('SAVE:', JSON.stringify(saveData))
-    if (saveData.exception) throw new Error(`Save gagal: ${saveData.message}`)
+    console.log('[quiz-submit] SAVE response:', JSON.stringify(saveData))
 
-    // ── LANGKAH 2: Finish attempt (finishattempt=1) ──
+    if (saveData.exception) {
+      if (saveData.errorcode === 'attemptalreadyclosed') {
+        console.log('[quiz-submit] attempt already closed during save')
+        return NextResponse.json({ success: true, alreadyClosed: true })
+      }
+      throw new Error(`Save gagal: ${saveData.message} (code: ${saveData.errorcode})`)
+    }
+
+    // ── LANGKAH 2: FINISH (finishattempt=1) ──
     const finishParams = new URLSearchParams({
       wstoken: token,
       wsfunction: 'mod_quiz_process_attempt',
@@ -54,38 +72,30 @@ export async function POST(req: Request) {
       attemptid: String(attemptId),
       finishattempt: '1',
     })
-
     if (password) {
       finishParams.set('preflightdata[0][name]', 'quizpassword')
       finishParams.set('preflightdata[0][value]', password)
     }
-
-    // Kirim ulang jawaban + sequencecheck saat finish juga
-    let j = 0
-    Object.entries(answers).forEach(([name, value]) => {
-      finishParams.set(`data[${j}][name]`, name)
-      finishParams.set(`data[${j}][value]`, String(value))
-      j++
-    })
-    if (sequencechecks) {
-      Object.entries(sequencechecks).forEach(([name, value]) => {
-        finishParams.set(`data[${j}][name]`, name)
-        finishParams.set(`data[${j}][value]`, String(value))
-        j++
-      })
-    }
+    const finishCount = buildDataParams(finishParams, answers, sequencechecks)
+    console.log('[quiz-submit] FINISH sending', finishCount, 'data fields')
 
     const finishRes = await fetch(`${base}/webservice/rest/server.php`, {
       method: 'POST',
       body: finishParams,
     })
     const finishData = await finishRes.json()
-    console.log('FINISH:', JSON.stringify(finishData))
-    if (finishData.exception) throw new Error(`Finish gagal: ${finishData.message}`)
+    console.log('[quiz-submit] FINISH response:', JSON.stringify(finishData))
+
+    if (finishData.exception) {
+      if (finishData.errorcode === 'attemptalreadyclosed') {
+        return NextResponse.json({ success: true, alreadyClosed: true })
+      }
+      throw new Error(`Finish gagal: ${finishData.message} (code: ${finishData.errorcode})`)
+    }
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    console.error('quiz-submit error:', err.message)
+    console.error('[quiz-submit] ERROR:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
