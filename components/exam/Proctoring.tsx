@@ -6,6 +6,7 @@ interface Props {
   attemptId?: number | null
 }
 
+
 export default function Proctoring({ onViolation, attemptId }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -104,7 +105,7 @@ export default function Proctoring({ onViolation, attemptId }: Props) {
       clearInterval(interval)
       clearInterval(warmupInterval)
     }
-  }, [attemptId, captureAndSend, onViolation])
+  }, [attemptId, captureAndSend])
 
   return (
     <div className="space-y-2">

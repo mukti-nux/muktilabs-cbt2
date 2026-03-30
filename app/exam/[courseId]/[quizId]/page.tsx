@@ -40,6 +40,8 @@ export default function ExamPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [hasActiveAttempt, setHasActiveAttempt] = useState(false)
   const [resuming, setResuming] = useState(false)
+  const lastViolationRef = useRef(0)
+  const ignoreFsRef = useRef(false)
 
   // Refs
   const attemptIdRef = useRef<number | null>(null)
@@ -99,14 +101,16 @@ export default function ExamPage() {
 
     function onVisibility() {
       if (document.hidden) {
-        setViolations(v => [...v, `Tab berpindah — ${new Date().toLocaleTimeString()}`])
+        addViolation(`Tab berpindah — ${new Date().toLocaleTimeString()}`)
         setTabWarning(true)
       }
     }
 
     function onFullscreenChange() {
+      if (ignoreFsRef.current) return
+
       if (!document.fullscreenElement) {
-        setViolations(v => [...v, `Keluar fullscreen — ${new Date().toLocaleTimeString()}`])
+        addViolation(`Keluar fullscreen — ${new Date().toLocaleTimeString()}`)
         setTabWarning(true)
       }
     }
@@ -239,6 +243,13 @@ export default function ExamPage() {
   const isWarning = timeLeft > 0 && timeLeft < 300
   const q = questions[current]
 
+  function addViolation(msg: string) {
+    const now = Date.now()
+    if (now - lastViolationRef.current < 2000) return
+    lastViolationRef.current = now
+    setViolations(v => [...v, msg])
+  }
+
   // ── Halaman login / password ──
   if (!started) return (
     <>
@@ -269,11 +280,17 @@ export default function ExamPage() {
             <button
               onClick={async () => {
                 setTabWarning(false)
+                ignoreFsRef.current = true
+
                 try {
                   await document.documentElement.requestFullscreen()
                 } catch {
                   try { await document.body.requestFullscreen() } catch { }
                 }
+
+                setTimeout(() => {
+                  ignoreFsRef.current = false
+                }, 1000)
               }}
               style={{
                 width: '100%', background: '#7c3aed', color: 'white',
