@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Proctoring from '@/components/exam/Proctoring'
 
@@ -40,7 +40,9 @@ export default function ExamPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [hasActiveAttempt, setHasActiveAttempt] = useState(false)
   const [resuming, setResuming] = useState(false)
-  const lastViolationRef = useRef(0)
+
+  // ✅ lastViolationRef: throttle global untuk semua jenis pelanggaran
+  const lastViolationRef = useRef<Record<string, number>>({})
   const ignoreFsRef = useRef(false)
 
   // Refs
@@ -50,6 +52,8 @@ export default function ExamPage() {
   const quizPasswordRef = useRef('')
   const submittedRef = useRef(false)
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  // ✅ Simpan timeLeft di ref agar timer effect tidak perlu re-run tiap detik
+  const timeLeftRef = useRef(0)
 
   // Sync refs
   useEffect(() => { attemptIdRef.current = attemptId }, [attemptId])
@@ -57,43 +61,42 @@ export default function ExamPage() {
   useEffect(() => { sequencechecksRef.current = sequencechecks }, [sequencechecks])
   useEffect(() => { quizPasswordRef.current = quizPassword }, [quizPassword])
 
-  // ✅ FIX: Timer effect yang benar
+  // ✅ FIX TIMER: Hanya jalankan sekali saat `started` jadi true
+  // Tidak ada `timeLeft` di dependency → tidak ada restart loop
   useEffect(() => {
     if (!started) return
-    if (timeLeft <= 0) return // Quiz tanpa batas waktu
+    if (timeLeftRef.current <= 0) return // Quiz tanpa batas waktu → tidak perlu timer
 
-    // Clear interval lama kalau ada
+    // Pastikan tidak ada interval lama
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current)
     }
 
-    // Set interval baru
     timerIntervalRef.current = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) {
-          // Waktu habis!
-          if (timerIntervalRef.current) {
-            clearInterval(timerIntervalRef.current)
-            timerIntervalRef.current = null
-          }
+        const next = prev - 1
+        timeLeftRef.current = next
+        if (next <= 0) {
+          clearInterval(timerIntervalRef.current!)
+          timerIntervalRef.current = null
           if (!submittedRef.current) {
             submittedRef.current = true
             submitExam()
           }
           return 0
         }
-        return prev - 1
+        return next
       })
     }, 1000)
 
-    // Cleanup
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current)
         timerIntervalRef.current = null
       }
     }
-  }, [started, timeLeft])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started]) // ← HANYA started, bukan timeLeft
 
   // Proctoring effects
   useEffect(() => {
@@ -101,16 +104,15 @@ export default function ExamPage() {
 
     function onVisibility() {
       if (document.hidden) {
-        addViolation(`Tab berpindah — ${new Date().toLocaleTimeString()}`)
+        addViolation('tab_switch', `Tab berpindah — ${new Date().toLocaleTimeString()}`)
         setTabWarning(true)
       }
     }
 
     function onFullscreenChange() {
       if (ignoreFsRef.current) return
-
       if (!document.fullscreenElement) {
-        addViolation(`Keluar fullscreen — ${new Date().toLocaleTimeString()}`)
+        addViolation('fullscreen', `Keluar fullscreen — ${new Date().toLocaleTimeString()}`)
         setTabWarning(true)
       }
     }
@@ -140,9 +142,10 @@ export default function ExamPage() {
     setAttemptId(data.attemptId)
     attemptIdRef.current = data.attemptId
 
-    // ✅ Gunakan timeLeft dari API
+    // ✅ Sinkronkan ref SEBELUM timer effect jalan
     const tl = data.timeLeft ?? 0
-    console.log('[Exam] Time left:', tl)
+    console.log('[Exam] Time left dari server:', tl, 'detik')
+    timeLeftRef.current = tl
     setTimeLeft(tl)
   }
 
@@ -232,7 +235,7 @@ export default function ExamPage() {
   }
 
   function formatTime(s: number) {
-    if (s <= 0) return "00:00"
+    if (s <= 0) return '∞' // Quiz tanpa batas waktu → tampilkan ∞, bukan 00:00
     const h = Math.floor(s / 3600)
     const m = Math.floor((s % 3600) / 60)
     const sec = s % 60
@@ -243,10 +246,12 @@ export default function ExamPage() {
   const isWarning = timeLeft > 0 && timeLeft < 300
   const q = questions[current]
 
-  function addViolation(msg: string) {
+  // ✅ FIX ANTI-SPAM: Throttle per jenis pelanggaran, minimal 5 detik antar pelanggaran sejenis
+  function addViolation(type: string, msg: string) {
     const now = Date.now()
-    if (now - lastViolationRef.current < 2000) return
-    lastViolationRef.current = now
+    const last = lastViolationRef.current[type] ?? 0
+    if (now - last < 5000) return // Throttle 5 detik per jenis
+    lastViolationRef.current[type] = now
     setViolations(v => [...v, msg])
   }
 
@@ -587,18 +592,13 @@ export default function ExamPage() {
             <Proctoring
               onViolation={(msg) => {
                 const lower = msg.toLowerCase()
-
-                // ignore camera violation
+                // ✅ Abaikan semua pelanggaran kamera — tidak perlu dicatat sebagai violation
                 if (lower.includes('kamera') || lower.includes('camera') || lower.includes('webcam')) {
                   return
                 }
-
-                // prevent spam duplicate
-                setViolations(v => {
-                  if (v[v.length - 1] === msg) return v
-                  return [...v, msg]
-                })
+                addViolation('proctoring', msg)
               }}
+              attemptId={attemptId}
             />
             {violations.length > 0 && (
               <div className="mt-3 space-y-1">
@@ -642,4 +642,4 @@ export default function ExamPage() {
       </div>
     </main>
   )
-} 
+}
