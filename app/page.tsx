@@ -70,7 +70,7 @@ export default function LoginPage() {
     }
   }
 
-  const allReady = camStatus === 'granted' && fsStatus === 'granted'
+  const allReady = fsStatus === 'granted'
 
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -191,9 +191,14 @@ export default function LoginPage() {
               {error}
             </div>
           )}
+          {camStatus === 'denied' && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 text-xs px-3 py-2 rounded-lg">
+              Kamera tidak tersedia atau ditolak — tetap bisa login tanpa kamera.
+            </div>
+          )}
           {!allReady && (
             <div className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-3 py-2 rounded-lg">
-              Aktifkan kamera dan fullscreen terlebih dahulu sebelum login.
+              Aktifkan fullscreen terlebih dahulu sebelum login.
             </div>
           )}
           <div>
@@ -223,7 +228,7 @@ export default function LoginPage() {
             disabled={loading || !allReady}
             className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
           >
-            {loading ? 'Memverifikasi...' : allReady ? 'Masuk' : 'Lengkapi persiapan dulu'}
+            {loading ? 'Memverifikasi...' : allReady ? 'Masuk' : 'Aktifkan fullscreen dulu'}
           </button>
         </form>
         <p className="text-center text-xs text-slate-400 mt-4">MuktiLabs CBT v1.0</p>
