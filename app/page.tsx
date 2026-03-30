@@ -73,7 +73,8 @@ export default function LoginPage() {
   const allReady = fsStatus === 'granted'
 
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center"
+      style={{ backgroundImage: "url('/bg.jpg')" }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-100 h-30 rounded-xl flex items-center justify-center overflow-hidden">
@@ -95,7 +96,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${camStatus === 'granted' ? 'bg-green-50' :
-                  camStatus === 'denied' ? 'bg-red-50' : 'bg-amber-50'
+                camStatus === 'denied' ? 'bg-red-50' : 'bg-amber-50'
                 }`}>
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
                   <path fill={camStatus === 'granted' ? '#22c55e' : camStatus === 'denied' ? '#ef4444' : '#f59e0b'}
@@ -119,8 +120,8 @@ export default function LoginPage() {
                 </button>
               )}
               <div className={`w-5 h-5 rounded-full flex items-center justify-center ${camStatus === 'granted' ? 'bg-green-500' :
-                  camStatus === 'denied' ? 'bg-red-500' :
-                    'bg-amber-400 animate-pulse'
+                camStatus === 'denied' ? 'bg-red-500' :
+                  'bg-amber-400 animate-pulse'
                 }`}>
                 {camStatus === 'granted' && (
                   <svg width="10" height="10" fill="none" viewBox="0 0 24 24">
@@ -147,7 +148,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${fsStatus === 'granted' ? 'bg-green-50' :
-                  fsStatus === 'exited' ? 'bg-red-50' : 'bg-slate-100'
+                fsStatus === 'exited' ? 'bg-red-50' : 'bg-slate-100'
                 }`}>
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
                   <path stroke={fsStatus === 'granted' ? '#22c55e' : fsStatus === 'exited' ? '#ef4444' : '#94a3b8'}
@@ -191,14 +192,9 @@ export default function LoginPage() {
               {error}
             </div>
           )}
-          {camStatus === 'denied' && (
-            <div className="bg-blue-50 border border-blue-200 text-blue-700 text-xs px-3 py-2 rounded-lg">
-              Kamera tidak tersedia atau ditolak — tetap bisa login tanpa kamera.
-            </div>
-          )}
           {!allReady && (
             <div className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-3 py-2 rounded-lg">
-              Aktifkan fullscreen terlebih dahulu sebelum login.
+              Penuhi persyaratan terlebih dahulu sebelum login.
             </div>
           )}
           <div>
