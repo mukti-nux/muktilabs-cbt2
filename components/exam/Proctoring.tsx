@@ -44,7 +44,7 @@ export default function Proctoring({ onViolation, attemptId }: Props) {
         image: base64,
         time: new Date().toISOString()
       })
-    }).catch(() => {})
+    }).catch(() => { })
   }, [attemptId])
 
   useEffect(() => {
@@ -79,7 +79,8 @@ export default function Proctoring({ onViolation, attemptId }: Props) {
 
       } catch {
         setCamStatus('nocam')
-        // Tetap kirim notif ke server bahwa tidak ada kamera
+
+        // Tetap kirim notif ke server bahwa tidak ada kamera (log saja, bukan pelanggaran)
         const user = JSON.parse(localStorage.getItem('moodle_user') || '{}')
         fetch('/api/moodle/snapshots', {
           method: 'POST',
@@ -92,8 +93,7 @@ export default function Proctoring({ onViolation, attemptId }: Props) {
             noCam: true,
             time: new Date().toISOString()
           })
-        }).catch(() => {})
-        onViolation('Kamera tidak dapat diakses')
+        }).catch(() => { })
       }
     }
 
@@ -114,8 +114,8 @@ export default function Proctoring({ onViolation, attemptId }: Props) {
             <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
               <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
                 <path stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"
-                  d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
-                <path stroke="#ef4444" strokeWidth="2" strokeLinecap="round" d="M3 3l18 18"/>
+                  d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+                <path stroke="#ef4444" strokeWidth="2" strokeLinecap="round" d="M3 3l18 18" />
               </svg>
             </div>
             <p className="text-slate-400 text-xs text-center px-4">Tanpa kamera</p>
@@ -159,15 +159,14 @@ export default function Proctoring({ onViolation, attemptId }: Props) {
 
       <div className="space-y-1.5">
         <div className="flex items-center gap-2 text-xs">
-          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-            camStatus === 'ok' ? 'bg-green-400' :
-            camStatus === 'nocam' ? 'bg-red-400' :
-            'bg-amber-400 animate-pulse'
-          }`} />
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${camStatus === 'ok' ? 'bg-green-400' :
+              camStatus === 'nocam' ? 'bg-red-400' :
+                'bg-amber-400 animate-pulse'
+            }`} />
           <span className="text-slate-600">
             {camStatus === 'ok' ? 'Kamera aktif' :
-             camStatus === 'nocam' ? 'Tanpa kamera (dicatat)' :
-             'Memuat kamera...'}
+              camStatus === 'nocam' ? 'Tanpa kamera (dicatat)' :
+                'Memuat kamera...'}
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs">

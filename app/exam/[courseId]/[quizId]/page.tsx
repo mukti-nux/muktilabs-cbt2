@@ -567,7 +567,22 @@ export default function ExamPage() {
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-4">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Kamera</p>
-            <Proctoring onViolation={(msg) => setViolations(v => [...v, msg])} />
+            <Proctoring
+              onViolation={(msg) => {
+                const lower = msg.toLowerCase()
+
+                // ignore camera violation
+                if (lower.includes('kamera') || lower.includes('camera') || lower.includes('webcam')) {
+                  return
+                }
+
+                // prevent spam duplicate
+                setViolations(v => {
+                  if (v[v.length - 1] === msg) return v
+                  return [...v, msg]
+                })
+              }}
+            />
             {violations.length > 0 && (
               <div className="mt-3 space-y-1">
                 <p className="text-xs font-medium text-red-600">{violations.length} pelanggaran</p>
