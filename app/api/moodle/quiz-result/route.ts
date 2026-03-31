@@ -102,6 +102,10 @@ export async function POST(req: Request) {
 
     console.log('[quiz-result] courseId from attempt:', courseId, 'quizId:', quizId)
 
+    if (!quizId || !courseId) {
+      throw new Error('quizId atau courseId undefined')
+    }
+
     const quiz = await findQuiz(base, adminToken, quizId, courseId)
 
     // ── Kalkulasi grade ──
