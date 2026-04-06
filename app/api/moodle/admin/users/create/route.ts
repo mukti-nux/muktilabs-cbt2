@@ -22,21 +22,12 @@ export async function POST(req: Request) {
       wstoken: adminToken,
       wsfunction: 'core_user_create_users',
       moodlewsrestformat: 'json',
-      users: JSON.stringify([
-        {
-          username,
-          password: userPassword,
-          firstname: firstname || '',
-          lastname: lastname || '',
-          email,
-          preferences: [
-            {
-              name: 'auth',
-              value: 'manual' // Gunakan auth manual agar bisa login dengan password
-            }
-          ]
-        }
-      ])
+      'users[0][username]': username,
+      'users[0][password]': userPassword,
+      'users[0][firstname]': firstname || '',
+      'users[0][lastname]': lastname || '',
+      'users[0][email]': email,
+      'users[0][auth]': 'manual'
     })
 
     const res = await fetch(`${base}/webservice/rest/server.php?${params}`)

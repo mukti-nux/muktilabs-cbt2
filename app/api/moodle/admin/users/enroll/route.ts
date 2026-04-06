@@ -24,7 +24,7 @@ export async function POST(req: Request) {
         `${base}/webservice/rest/server.php?wstoken=${adminToken}&wsfunction=core_role_get_roles&moodlewsrestformat=json`
       )
       const rolesData = await rolesRes.json()
-      
+
       // Cari role dengan shortname 'student'
       const studentRole = rolesData.find((r: any) => r.shortname === 'student')
       if (studentRole) {
@@ -45,9 +45,9 @@ export async function POST(req: Request) {
           wstoken: adminToken,
           wsfunction: 'enrol_manual_enrol_users',
           moodlewsrestformat: 'json',
-          userids: JSON.stringify([userId]),
-          courseid: String(courseId),
-          roleid: studentRoleId
+          'enrolments[0][roleid]': studentRoleId,
+          'enrolments[0][userid]': String(userId),
+          'enrolments[0][courseid]': String(courseId)
         })
 
         const res = await fetch(`${base}/webservice/rest/server.php?${params}`)

@@ -19,25 +19,27 @@ export async function GET(req: Request) {
     const params = new URLSearchParams({
       wstoken: adminToken,
       wsfunction: 'core_user_get_users',
-      moodlewsrestformat: 'json'
+      moodlewsrestformat: 'json',
+      'criteria[0][key]': 'deleted',
+      'criteria[0][value]': '0'
     })
-
+    
     console.log('[admin/users] Requesting to:', `${base}/webservice/rest/server.php?${params}`)
 
     const res = await fetch(`${base}/webservice/rest/server.php?${params}`, {
       method: 'GET'
     })
-    
+
     const data = await res.json()
 
     console.log('[admin/users] Response:', JSON.stringify(data).substring(0, 500))
 
     if (data.exception) {
       console.error('[admin/users] Moodle exception:', data.message, data.errorcode)
-      return NextResponse.json({ 
-        error: data.message, 
+      return NextResponse.json({
+        error: data.message,
         errorcode: data.errorcode,
-        users: [] 
+        users: []
       }, { status: 200 }) // Return 200 dengan empty array agar UI tidak crash
     }
 
@@ -47,7 +49,7 @@ export async function GET(req: Request) {
     // Untuk setiap user, ambil informasi tambahan (enrolled courses)
     // Tapi kita limit dulu hanya 50 user pertama untuk performance
     const limitedUsers = users.slice(0, 50)
-    
+
     const usersWithDetails = await Promise.all(
       limitedUsers.map(async (user: any) => {
         let enrolledCourses = 0
@@ -81,9 +83,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ users: usersWithDetails, total: users.length })
   } catch (err: any) {
     console.error('[admin/users] Error:', err.message)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: err.message,
-      users: [] 
+      users: []
     }, { status: 200 }) // Return 200 dengan empty array agar UI tidak crash
   }
 }
