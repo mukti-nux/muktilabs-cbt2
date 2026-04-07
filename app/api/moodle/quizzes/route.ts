@@ -7,16 +7,28 @@ export async function GET(req: Request) {
   if (!courseId) return NextResponse.json({ error: 'courseId required' }, { status: 400 })
 
   try {
-    const [quizData, courseData] = await Promise.all([
-      moodleCall('mod_quiz_get_quizzes_by_courses', { 'courseids[0]': courseId }),
-      moodleCall('core_course_get_courses', { 'options[ids][0]': courseId })
-    ])
+    // Get quizzes for this specific course
+    const quizData = await moodleCall('mod_quiz_get_quizzes_by_courses', { 
+      'courseids[0]': courseId 
+    })
+    console.log('[quizzes route] quizData:', quizData)
+
+    // Get course info - simpler API without complex options
+    let courseName = ''
+    try {
+      const courses = await moodleCall('core_course_get_courses')
+      const course = (courses || []).find((c: any) => c.id === Number(courseId))
+      courseName = course?.fullname || ''
+    } catch (e) {
+      console.log('[quizzes route] course lookup error:', e)
+    }
 
     return NextResponse.json({
       quizzes: quizData.quizzes || [],
-      courseName: courseData[0]?.fullname || ''
+      courseName
     })
   } catch (err: any) {
+    console.error('[quizzes route] error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
