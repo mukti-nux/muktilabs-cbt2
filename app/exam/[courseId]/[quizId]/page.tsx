@@ -65,6 +65,17 @@ export default function ExamPage() {
   useEffect(() => { sequencechecksRef.current = sequencechecks }, [sequencechecks])
   useEffect(() => { quizPasswordRef.current = quizPassword }, [quizPassword])
 
+  // --- AUTO START DARI LOBBY ---
+  useEffect(() => {
+    const cachedPass = sessionStorage.getItem(`lobby_pass_${quizId}`)
+    if (cachedPass) {
+      sessionStorage.removeItem(`lobby_pass_${quizId}`) // Bersihkan agar tidak berulang saat refresh
+      setQuizPassword(cachedPass)
+      startExam(cachedPass)
+    }
+  }, [quizId])
+  // -----------------------------
+
   // ✅ FIX TIMER: Hanya jalankan sekali saat `started` jadi true
   // Tidak ada `timeLeft` di dependency → tidak ada restart loop
   useEffect(() => {
@@ -164,7 +175,8 @@ export default function ExamPage() {
     setTimeLeft(tl)
   }
 
-  async function startExam() {
+  async function startExam(overridePass?: string) {
+    const passToUse = overridePass !== undefined ? overridePass : quizPassword
     setCheckingPassword(true)
     setPasswordError('')
     try {
@@ -172,7 +184,7 @@ export default function ExamPage() {
       const res = await fetch(`/api/moodle/quiz-start?quizId=${quizId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password: quizPassword }),
+        body: JSON.stringify({ token, password: passToUse }),
       })
       const data = await res.json()
 
@@ -388,7 +400,7 @@ export default function ExamPage() {
                   </ul>
                 </div>
                 <button
-                  onClick={startExam}
+                  onClick={() => startExam()}
                   disabled={!quizPassword || checkingPassword}
                   className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-colors"
                 >

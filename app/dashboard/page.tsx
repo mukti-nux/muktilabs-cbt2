@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 interface Course {
   id: number
@@ -153,11 +154,8 @@ export default function DashboardPage() {
         {/* Logo Area */}
         <div className="p-6 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
-              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
-                <path stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-              </svg>
+            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-lg shadow-violet-500/10 p-2">
+              <Image src="/logo.png" alt="Logo CBT" width={32} height={32} className="object-contain" />
             </div>
             <div>
               <p className="font-bold text-slate-800 tracking-tight">MuktiLabs CBT</p>

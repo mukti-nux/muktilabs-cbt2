@@ -69,7 +69,7 @@ export default function ExamListPage() {
             {quizzes.map(quiz => (
               <div
                 key={quiz.id}
-                onClick={() => router.push(`/exam/${courseId}/${quiz.id}`)}
+                onClick={() => router.push(`/exam/${courseId}/${quiz.id}/lobby`)}
                 className="bg-white rounded-2xl border border-slate-200 p-6 cursor-pointer hover:border-violet-300 hover:shadow-sm transition-all group flex items-center justify-between"
               >
                 <div>

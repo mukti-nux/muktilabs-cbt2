@@ -67,7 +67,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-800 dark:text-white">MuktiLabs CBT</p>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Admin Panel</p>
+              <p className="text-xs text-slate-400 dark:text-slate-300">Admin Panel</p>
             </div>
           </div>
         </div>
@@ -79,8 +79,8 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
               href={item.href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
                 pathname === item.href
-                  ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 font-medium'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                  ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 font-medium'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
               }`}
             >
               <span className="text-base">{item.icon}</span>
