@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { LiveKitRoom, useParticipants, useDataChannel } from '@livekit/components-react'
-import '@livekit/components-styles'
 
 export default function AdminLobbyWrapper() {
   const { courseId, quizId } = useParams()
