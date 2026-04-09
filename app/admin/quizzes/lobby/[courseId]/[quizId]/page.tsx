@@ -86,19 +86,27 @@ function AdminLobbyContent({ courseId, quizId }: { courseId: string, quizId: str
       images: precachedImages
     })
 
-    sendExam(new TextEncoder().encode(payload), { reliable: true })
-    alert('Sinyal berhasil ditembakkan! Seluruh siswa di ruang tunggu sedang otomatis masuk ke soal.')
-    router.push(`/admin/quizzes`)
+    try {
+      if (sendExam) sendExam(new TextEncoder().encode(payload), { reliable: true })
+      alert('Sinyal berhasil ditembakkan! Seluruh siswa di ruang tunggu sedang otomatis masuk ke soal.')
+      router.push(`/admin/quizzes`)
+    } catch (e) {
+      alert('Koneksi Lobby belum siap, pantau status radar.')
+    }
   }
 
   const sendPM = (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedPeer || !msgInput.trim()) return
     const payload = JSON.stringify({ type: 'PM', from: 'Pengawas Ujian', text: msgInput })
-    sendPm(new TextEncoder().encode(payload), { destinationIdentities: [selectedPeer.identity] })
+    try {
+      if (sendPm) sendPm(new TextEncoder().encode(payload), { destinationIdentities: [selectedPeer.identity] })
+      alert(`Pesan/Teguran terkirim ke ${selectedPeer.identity}!`)
+    } catch (e) {
+       console.error('Data channel error')
+    }
     setMsgInput('')
     setSelectedPeer(null)
-    alert(`Pesan/Teguran terkirim ke ${selectedPeer.identity}!`)
   }
 
   return (

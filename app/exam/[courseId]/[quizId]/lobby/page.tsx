@@ -104,7 +104,11 @@ function LobbyContent({ courseId, quizId, currentUser }: { courseId: string, qui
     e.preventDefault()
     if (!selectedPeer || !msgInput.trim()) return
     const payload = JSON.stringify({ type: 'PM', from: currentUser, text: msgInput })
-    send(new TextEncoder().encode(payload), { destinationIdentities: [selectedPeer.identity] })
+    try {
+      if (send) send(new TextEncoder().encode(payload), { destinationIdentities: [selectedPeer.identity] })
+    } catch (e) {
+      console.error('Data Channel belum siap', e)
+    }
     setMsgInput('')
     setSelectedPeer(null)
   }
